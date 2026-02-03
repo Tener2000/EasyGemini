@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Easy Geminiv3.6</title>
+  <title>Easy Geminiv3.7</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -165,14 +165,152 @@
       z-index: 9999;
       display: none;
     }
+
+    /* 履歴モーダル */
+    .history-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, .6);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .history-overlay.open {
+      display: flex;
+    }
+
+    .history-modal {
+      background: var(--bg, #1a1a1a);
+      border-radius: 16px;
+      width: min(700px, 95vw);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    @media (prefers-color-scheme: light) {
+      .history-modal {
+        --bg: #fff;
+      }
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .history-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .history-close {
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .history-item {
+      border: 1px solid rgba(128, 128, 128, .35);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .history-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: gray;
+    }
+
+    .history-item-model {
+      font-weight: 700;
+      color: #ffd54f;
+    }
+
+    .history-item-content {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .history-item-tpl,
+    .history-item-src,
+    .history-item-out {
+      margin-bottom: 8px;
+      padding: 8px;
+      background: rgba(128, 128, 128, .1);
+      border-radius: 8px;
+      white-space: pre-wrap;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .history-item-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: gray;
+      margin-bottom: 4px;
+    }
+
+    .history-item-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .history-item-actions button {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(128, 128, 128, .35);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .history-item-actions button.reuse {
+      background: #ffd54f;
+      color: #1a1a1a;
+      border-color: #ffd54f;
+    }
+
+    .history-item-actions button.delete {
+      color: #f44336;
+      border-color: #f44336;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: gray;
+      padding: 40px 0;
+    }
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <header class="row" style="justify-content: space-between;">
-      <h1>Easy Geminiv3.6 <small id="ver" class="hint"></small></h1>
+      <h1>Easy Geminiv3.7 <small id="ver" class="hint"></small></h1>
       <div class="row">
+        <button id="openHistory">📚 履歴</button>
         <button id="openKey">設定</button>
         <button id="openManager">プリセット管理</button>
       </div>
@@ -274,6 +412,17 @@
   </template>
 
   <div id="toast" class="toast"></div>
+
+  <!-- 履歴モーダル -->
+  <div id="historyOverlay" class="history-overlay">
+    <div class="history-modal">
+      <div class="history-header">
+        <h2>📚 履歴</h2>
+        <button id="historyClose" class="history-close">×</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
 
   <script src="sidepanel.js" defer></script>
 </body>

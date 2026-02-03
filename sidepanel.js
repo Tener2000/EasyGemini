@@ -1,4 +1,4 @@
-// Easy Geminiv3.6 — タブタイトル自動設定 + API使用量追跡
+// Easy Geminiv3.7 — 履歴機能追加
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -38,6 +38,8 @@ function now() { return Date.now(); }
 const ANTHROPIC_HOST = 'https://api.anthropic.com/v1';
 const OPENAI_HOST = 'https://api.openai.com/v1';
 const API_USAGE_KEY = 'easyGemini.apiUsage';
+const HISTORY_KEY = 'easyGemini.history';
+const HISTORY_MAX = 100;
 
 // ========= API使用量追跡 =========
 async function getApiUsage() {
@@ -58,6 +60,27 @@ async function addApiUsage(apiType, inputTokens, outputTokens) {
   usage[apiType].outputTokens += outputTokens || 0;
   usage[apiType].lastUpdated = new Date().toISOString();
   await chrome.storage.local.set({ [API_USAGE_KEY]: usage });
+}
+
+// ========= 履歴管理 =========
+async function getHistory() {
+  const v = await new Promise(res => chrome.storage.local.get([HISTORY_KEY], x => res(x?.[HISTORY_KEY])));
+  return Array.isArray(v) ? v : [];
+}
+
+async function addHistory(entry) {
+  const history = await getHistory();
+  history.unshift(entry);
+  // 上限を超えた古いエントリを削除
+  while (history.length > HISTORY_MAX) history.pop();
+  await chrome.storage.local.set({ [HISTORY_KEY]: history });
+}
+
+async function deleteHistory(id) {
+  const history = await getHistory();
+  const filtered = history.filter(h => h.id !== id);
+  await chrome.storage.local.set({ [HISTORY_KEY]: filtered });
+  return filtered;
 }
 
 async function getKey(type = 'gemini') {
@@ -474,6 +497,16 @@ function bindSessionUI(root, s) {
       outEl.textContent = s.out;
       s.status = '完了';
 
+      // 履歴に保存
+      await addHistory({
+        id: newId(),
+        timestamp: new Date().toISOString(),
+        model: modelVal,
+        tpl: (tplEl.value || '').trim(),
+        src: (srcEl.value || '').trim(),
+        out: s.out
+      });
+
       // NEW のままなら素材の先頭行からタイトルを付ける
       if (s.title === 'NEW') {
         const firstLine = (s.src || '').split(/\r?\n/)[0].trim();
@@ -547,6 +580,100 @@ $('#openManager').addEventListener('click', () => {
   window.open(chrome.runtime.getURL('presets.html'), '_blank', 'noopener,noreferrer,width=880,height=640');
 });
 addTabBtn.addEventListener('click', addTab);
+
+// ========= 履歴UI =========
+const historyOverlay = $('#historyOverlay');
+const historyListEl = $('#historyList');
+const historyCloseBtn = $('#historyClose');
+const openHistoryBtn = $('#openHistory');
+
+function formatDate(isoStr) {
+  const d = new Date(isoStr);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function truncate(str, maxLen = 100) {
+  if (!str) return '';
+  return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
+}
+
+async function renderHistoryList() {
+  const history = await getHistory();
+  historyListEl.innerHTML = '';
+  if (!history.length) {
+    historyListEl.innerHTML = '<div class="history-empty">履歴はまだありません</div>';
+    return;
+  }
+  history.forEach(h => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <div class="history-item-header">
+        <span class="history-item-model">${h.model || '不明'}</span>
+        <span>${formatDate(h.timestamp)}</span>
+      </div>
+      <div class="history-item-content">
+        ${h.tpl ? `<div class="history-item-label">指示</div><div class="history-item-tpl">${escapeHtml(truncate(h.tpl, 200))}</div>` : ''}
+        ${h.src ? `<div class="history-item-label">素材</div><div class="history-item-src">${escapeHtml(truncate(h.src, 200))}</div>` : ''}
+        <div class="history-item-label">AI応答</div>
+        <div class="history-item-out">${escapeHtml(truncate(h.out, 300))}</div>
+      </div>
+      <div class="history-item-actions">
+        <button class="reuse" data-id="${h.id}">再利用</button>
+        <button class="copy-out" data-id="${h.id}">📋 応答をコピー</button>
+        <button class="delete" data-id="${h.id}">削除</button>
+      </div>
+    `;
+    // 再利用ボタン
+    item.querySelector('.reuse').addEventListener('click', () => {
+      addTab();
+      const s = sessions.find(x => x.id === activeId);
+      if (s) {
+        s.tpl = h.tpl || '';
+        s.src = h.src || '';
+        s.model = h.model || 'gemini-3-flash-preview';
+        renderActivePane();
+      }
+      historyOverlay.classList.remove('open');
+      toast('新規タブに読み込みました');
+    });
+    // 応答コピーボタン
+    item.querySelector('.copy-out').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(h.out || '');
+        toast('応答をコピーしました');
+      } catch { }
+    });
+    // 削除ボタン
+    item.querySelector('.delete').addEventListener('click', async () => {
+      await deleteHistory(h.id);
+      renderHistoryList();
+      toast('履歴を削除しました');
+    });
+    historyListEl.appendChild(item);
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+openHistoryBtn.addEventListener('click', async () => {
+  await renderHistoryList();
+  historyOverlay.classList.add('open');
+});
+
+historyCloseBtn.addEventListener('click', () => {
+  historyOverlay.classList.remove('open');
+});
+
+historyOverlay.addEventListener('click', (e) => {
+  if (e.target === historyOverlay) {
+    historyOverlay.classList.remove('open');
+  }
+});
 
 // ========= Init =========
 (async () => {
