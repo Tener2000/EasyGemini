@@ -1,0 +1,12 @@
+# Backup files
+BackNo/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Distribution files
+*.zip
+
+# Preset backup files
+easy-gemini-presets-*.json

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Easy Geminiv3.6</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+    }
+
+    .wrap {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      width: min(860px, 96vw);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      resize: vertical;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(128, 128, 128, .35);
+      background: transparent;
+    }
+
+    select,
+    button,
+    input[type="number"],
+    input[type="text"] {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(128, 128, 128, .35);
+      background: transparent;
+    }
+
+    button.solid {
+      background: #ffd54f;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: gray;
+    }
+
+    .out {
+      border: 1px solid rgba(128, 128, 128, .35);
+      border-radius: 10px;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      min-height: 120px;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .out.empty {
+      color: gray;
+    }
+
+    .sep {
+      height: 1px;
+      background: rgba(128, 128, 128, .25);
+    }
+
+    /* ▼ タブを縦に独立ボタンで表示 */
+    .tabstack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid rgba(128, 128, 128, .35);
+      border-radius: 12px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .tab.active {
+      background: #ffd54f;
+      color: #1a1a1a;
+      border-color: #ffd54f;
+    }
+
+    .tab .x {
+      border: 0;
+      background: transparent;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .add-tab {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px dashed rgba(128, 128, 128, .5);
+      border-radius: 12px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .tabwrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, .82);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      z-index: 9999;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="row" style="justify-content: space-between;">
+      <h1>Easy Geminiv3.6 <small id="ver" class="hint"></small></h1>
+      <div class="row">
+        <button id="openKey">設定</button>
+        <button id="openManager">プリセット管理</button>
+      </div>
+    </header>
+
+    <div id="needKey" class="hint" style="display:none;color:#d32f2f;font-weight:700;">
+      まず「設定」から Gemini API キーを保存してください。
+    </div>
+
+    <!-- ▼ タブボタンを縦積みで表示。新規は常に下に追加される -->
+    <section class="tabwrap">
+      <div id="tabbar" class="tabstack" role="tablist" aria-label="sessions"></div>
+      <button id="addTab" class="add-tab">＋ 新規タブ</button>
+    </section>
+
+    <!-- セッションの内容は JS で #pane にレンダリング -->
+    <div id="pane"></div>
+  </div>
+
+  <!-- コンテンツテンプレート（複製して使う） -->
+  <template id="tpl-session">
+    <section class="session">
+      <div class="row">
+        <label class="row">Model
+          <select data-k="model">
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
+            <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+            <option disabled>──────────</option>
+            <option value="claude-sonnet-4">Claude Sonnet 4</option>
+            <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+            <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+            <option value="claude-opus-4-5">Claude Opus 4.5</option>
+            <option disabled>──────────</option>
+            <option value="gpt-5.2-chat-latest">GPT-5.2</option>
+            <option value="gpt-5-chat-latest">GPT-5</option>
+            <option value="gpt-5-mini">GPT-5 mini</option>
+            <option value="gpt-4.1">GPT-4.1</option>
+            <option value="gpt-4.1-mini">GPT-4.1 mini</option>
+            <option value="gpt-4.1-nano">GPT-4.1 nano</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o-mini">GPT-4o mini</option>
+            <option value="o3">o3</option>
+            <option value="o3-mini">o3-mini</option>
+            <option value="o4-mini">o4-mini</option>
+          </select>
+        </label>
+        <span class="hint">⌘/Ctrl + Enter で実行</span>
+        <span style="flex:1;"></span>
+        <label class="row hint">タイトル
+          <input data-k="title" type="text" placeholder="タブ名（自動連番・手入力で上書き可）" style="min-width:200px;">
+        </label>
+      </div>
+
+      <section>
+        <div><strong>指示（カスタムプロンプト）</strong> <span class="hint">管理画面のプリセットを挿入可</span></div>
+        <textarea data-k="tpl" placeholder="例）次のテキストを編集者視点で推敲。構成・語尾を整え、見出しも提案。"></textarea>
+      </section>
+
+      <section>
+        <div class="row" style="justify-content:space-between;">
+          <div class="row">
+            <label class="row">プリセット
+              <select data-k="presetSel" style="min-width:260px;"></select>
+            </label>
+            <button data-k="insertPreset">挿入</button>
+          </div>
+          <div class="row">
+            <button data-k="exportPresets">書き出し</button>
+            <button data-k="importBtn">読み込み</button>
+            <input data-k="importInput" class="hidden" type="file" accept="application/json" style="display:none;">
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <strong>適用対象テキスト（素材）</strong>
+          <button data-k="grabPage" title="アクティブタブの本文を取得">メインタブの本文を取得</button>
+        </div>
+        <textarea data-k="src" placeholder="ここに素材テキストを入力／貼り付け"></textarea>
+      </section>
+
+      <div class="sep"></div>
+
+      <section class="row">
+        <button data-k="gen" class="solid">Generate</button>
+        <button data-k="cancel" style="display:none;">キャンセル</button>
+        <button data-k="copy" title="出力をコピー">📋 コピー</button>
+        <span data-k="status" class="hint"></span>
+      </section>
+
+      <section>
+        <div><strong>AIの返答</strong></div>
+        <div data-k="out" class="out empty">結果がここに表示されます。</div>
+      </section>
+    </section>
+  </template>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="sidepanel.js" defer></script>
+</body>
+
+</html>
