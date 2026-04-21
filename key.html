@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Easy Geminiv3.9.3 - 設定</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+    }
+
+    .wrap {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      width: min(560px, 96vw);
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(128, 128, 128, .35);
+      background: transparent;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(128, 128, 128, .35);
+      background: transparent;
+      resize: vertical;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(128, 128, 128, .35);
+      background: #ffd54f;
+      color: #1a1a1a;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: gray;
+    }
+
+    .usage-section {
+      border-top: 1px solid rgba(128, 128, 128, .25);
+      padding-top: 16px;
+      margin-top: 12px;
+    }
+
+    .usage-item {
+      margin: 12px 0;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(128, 128, 128, .08);
+    }
+
+    .usage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .usage-bar {
+      height: 8px;
+      background: rgba(128, 128, 128, .2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .usage-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .usage-bar-fill.gemini {
+      background: linear-gradient(90deg, #4285f4, #34a853);
+    }
+
+    .usage-bar-fill.claude {
+      background: linear-gradient(90deg, #9b59b6, #8e44ad);
+    }
+
+    .usage-bar-fill.openai {
+      background: linear-gradient(90deg, #10a37f, #1a7f64);
+    }
+
+    .usage-bar-fill.grok {
+      background: linear-gradient(90deg, #ff0000, #990000);
+    }
+
+    .usage-details {
+      font-size: 12px;
+      color: gray;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .usage-total {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(255, 213, 79, .15);
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <section>
+      <h2>APIキー</h2>
+      <p class="hint">各サービスで発行したAPIキーを保存します。</p>
+      <input id="key" type="password" placeholder="Gemini API Key (AIza...)" autocomplete="off" />
+
+      <!-- Gemini Auth Priority -->
+      <div style="margin-top: 8px; padding: 10px; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px;">
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">Gemini 認証優先度</div>
+        <label style="display: block; margin-bottom: 6px; cursor: pointer; font-size: 13px;">
+          <input type="radio" name="geminiAuthPriority" value="apikey" checked>
+          APIキーを優先 (推奨)
+        </label>
+        <label style="display: block; cursor: pointer; font-size: 13px;">
+          <input type="radio" name="geminiAuthPriority" value="google">
+          Googleアカウント連携を優先
+        </label>
+        <div class="hint" style="margin-top: 4px;">
+          ※ Google連携は無料枠の使用制限が厳しい場合があります。APIキー(Pay-as-you-go等)をお持ちの方は「APIキーを優先」を推奨します。
+        </div>
+      </div>
+
+      <div style="height:8px;"></div>
+      <input id="claudeKey" type="password" placeholder="Claude API Key (sk-ant...)" autocomplete="off" />
+      <div style="height:8px;"></div>
+      <input id="openaiKey" type="password" placeholder="OpenAI API Key (sk-...)" autocomplete="off" />
+      <div style="height:8px;"></div>
+      <input id="grokKey" type="password" placeholder="Grok API Key (xai-...)" autocomplete="off" />
+      <div style="height:12px;"></div>
+      <div style="padding: 10px; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px;">
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">ローカルLLM (Ollama等)</div>
+        <input id="localUrl" type="text" placeholder="エンドポイントURL (例: http://localhost:11434/v1)" autocomplete="off" style="margin-bottom: 8px;" />
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <input id="localModel" type="text" placeholder="モデル名 (例: qwen3.5-9b)" autocomplete="off" style="flex: 1;" />
+          <button id="testLocal" style="background: transparent; font-size: 12px; width: auto; white-space: nowrap;">接続テスト</button>
+        </div>
+      </div>
+      <div style="height:8px;"></div>
+      <label class="hint"><input id="show" type="checkbox" /> 表示する</label>
+      <div>
+        <button id="save">保存</button>
+        <button id="clear">削除</button>
+      </div>
+      <div id="msg" class="hint" role="status" aria-live="polite"></div>
+    </section>
+
+    <section>
+      <h2>システムプロンプト（全タブ共通）</h2>
+      <p class="hint">ここに入力した指示が最優先で適用され、各タブのカスタムプロンプトや素材はその前提で実行されます。</p>
+      <textarea id="systemPrompt" placeholder="システム全体のトーンやルールを記述します。"></textarea>
+      <div>
+        <button id="savePrompt">保存</button>
+        <button id="resetPrompt">デフォルトに戻す</button>
+      </div>
+      <div id="promptMsg" class="hint" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="usage-section">
+      <h2>📊 API使用量</h2>
+      <p class="hint">各APIの累積トークン使用量と概算コストを表示します。</p>
+
+      <div id="usageGemini" class="usage-item">
+        <div class="usage-header">
+          <span>🔷 Gemini</span>
+          <span id="geminiCost">$0.00</span>
+        </div>
+        <div class="usage-bar">
+          <div id="geminiBar" class="usage-bar-fill gemini" style="width: 0%;"></div>
+        </div>
+        <div class="usage-details">
+          <span>入力: <span id="geminiInput">0</span> / 出力: <span id="geminiOutput">0</span></span>
+          <span>合計: <span id="geminiTotal">0</span> tokens</span>
+        </div>
+      </div>
+
+      <div id="usageClaude" class="usage-item">
+        <div class="usage-header">
+          <span>🟣 Claude</span>
+          <span id="claudeCost">$0.00</span>
+        </div>
+        <div class="usage-bar">
+          <div id="claudeBar" class="usage-bar-fill claude" style="width: 0%;"></div>
+        </div>
+        <div class="usage-details">
+          <span>入力: <span id="claudeInput">0</span> / 出力: <span id="claudeOutput">0</span></span>
+          <span>合計: <span id="claudeTotal">0</span> tokens</span>
+        </div>
+      </div>
+
+      <div id="usageOpenai" class="usage-item">
+        <div class="usage-header">
+          <span>🟢 OpenAI</span>
+          <span id="openaiCost">$0.00</span>
+        </div>
+        <div class="usage-bar">
+          <div id="openaiBar" class="usage-bar-fill openai" style="width: 0%;"></div>
+        </div>
+        <div class="usage-details">
+          <span>入力: <span id="openaiInput">0</span> / 出力: <span id="openaiOutput">0</span></span>
+          <span>合計: <span id="openaiTotal">0</span> tokens</span>
+        </div>
+      </div>
+
+      <div id="usageGrok" class="usage-item">
+        <div class="usage-header">
+          <span>🔴 Grok</span>
+          <span id="grokCost">$0.00</span>
+        </div>
+        <div class="usage-bar">
+          <div id="grokBar" class="usage-bar-fill grok" style="width: 0%;"></div>
+        </div>
+        <div class="usage-details">
+          <span>入力: <span id="grokInput">0</span> / 出力: <span id="grokOutput">0</span></span>
+          <span>合計: <span id="grokTotal">0</span> tokens</span>
+        </div>
+      </div>
+
+      <div class="usage-total">
+        <span>合計コスト</span>
+        <span id="totalCost">$0.00</span>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <button id="resetUsage">使用量をリセット</button>
+      </div>
+      <div id="usageMsg" class="hint" role="status" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <!-- MV3: インライン禁止。外部JSを読み込む -->
+  <script src="key.js" defer></script>
+</body>
+
+</html>

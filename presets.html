@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>Easy Geminiv3.5 - プリセット管理</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial; }
+    .wrap { height: 100%; display: grid; grid-template-columns: 280px 1fr; gap: 12px; padding: 14px; }
+    .list { border:1px solid rgba(128,128,128,.35); border-radius:10px; padding: 8px; overflow: auto; }
+    .item { padding: 8px; border-radius: 8px; cursor: pointer; }
+    .item.active { background: rgba(255,213,79,.25); }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    input[type="text"] { width: 100%; padding: 8px 10px; border-radius: 10px; border:1px solid rgba(128,128,128,.35); background: transparent; }
+    textarea { width: 100%; min-height: 200px; resize: vertical; padding: 10px 12px; border-radius: 10px; border:1px solid rgba(128,128,128,.35); background: transparent; }
+    button { padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(128,128,128,.35); background: transparent; }
+    button.solid { background: #ffd54f; color:#1a1a1a; font-weight: 700; }
+    .hint { font-size: 12px; color: gray; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="row" style="justify-content:space-between; margin-bottom:8px;">
+        <strong>プリセット一覧</strong>
+        <div class="row">
+          <button id="add" class="solid">新規</button>
+        </div>
+      </div>
+      <div id="list" class="list"></div>
+    </aside>
+
+    <main>
+      <div class="row">
+        <label class="row" style="flex:1;">
+          名称
+          <input id="name" type="text" placeholder="プリセット名（重名は上書き対象）">
+        </label>
+        <button id="save" class="solid">保存（買い替え上書き）</button>
+        <button id="delete">削除</button>
+      </div>
+      <div style="margin-top:8px;">
+        <textarea id="text" placeholder="このプリセットの本文（指示）"></textarea>
+      </div>
+
+      <div class="row" style="margin-top:8px; justify-content:space-between;">
+        <div class="row">
+          <button id="export">書き出し</button>
+          <button id="importBtn">読み込み</button>
+          <input id="importInput" type="file" accept="application/json" style="display:none;">
+        </div>
+        <span class="hint">※ 同名プリセットは保存時・読み込み時に<strong>上書き</strong>されます</span>
+      </div>
+    </main>
+  </div>
+
+  <script src="presets.js"></script>
+</body>
+</html>

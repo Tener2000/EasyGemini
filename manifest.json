@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Easy Geminiv3.9.3",
+  "version": "3.9.3",
+  "description": "サイドパネルでGeminiとテキストやりとり。プリセット管理。マルチタブ並列＋メインタブの本文取得対応。",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "clipboardWrite",
+    "tabs",
+    "scripting",
+    "activeTab",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.anthropic.com/*",
+    "<all_urls>"
+  ],
+  "oauth2": {
+    "client_id": "1057166413662-ihuk82ke161gim45gjtnsaf6tun8mqcv.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/generative-language.retriever",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Easy Geminiv3.9.3"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
