@@ -1,4 +1,4 @@
-// Easy Geminiv3.8 — GoogleAuth統合
+// Easy Gemini v4.0.0 — GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
