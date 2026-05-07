@@ -28,16 +28,16 @@
   const localUrlEl = $('#localUrl');
   const localModelEl = $('#localModel');
   const testLocalBtn = $('#testLocal');
+  const testCodexBtn = $('#testCodex');
 
   async function loadKey() {
     const v = await new Promise(res =>
-      chrome.storage.local.get(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel'], x => res(x))
+      chrome.storage.local.get(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'codexAppServerUrl'], x => res(x))
     );
     keyEl.value = v?.geminiApiKey || '';
     claudeKeyEl.value = v?.claudeApiKey || '';
     openaiKeyEl.value = v?.openaiApiKey || '';
     grokKeyEl.value = v?.grokApiKey || '';
-    localUrlEl.value = v?.localUrl || '';
     localModelEl.value = v?.localModel || '';
 
     // Auth Priority
@@ -217,6 +217,101 @@
     } finally {
       testLocalBtn.disabled = false;
       testLocalBtn.textContent = '接続テスト';
+    }
+  });
+
+  const extIdLabel = $('#extIdLabel');
+  const downloadHostBatBtn = $('#downloadHostBat');
+  if (extIdLabel) extIdLabel.textContent = chrome.runtime.id;
+
+  if (downloadHostBatBtn) {
+    downloadHostBatBtn.addEventListener('click', () => {
+      const extensionId = chrome.runtime.id;
+      // Get absolute path of host directory based on the extension path isn't directly possible,
+      // But we know it's a fixed path, wait, we can just use `%~dp0` in the bat file
+      const batContent = `@echo off
+chcp 65001 > nul
+set "DIR=%~dp0"
+set "JSON_PATH=%DIR%easy_gemini_codex_host.json"
+
+echo { > "%JSON_PATH%"
+echo   "name": "easy_gemini_codex_host", >> "%JSON_PATH%"
+echo   "description": "Codex App Server Host for Easy Gemini", >> "%JSON_PATH%"
+echo   "path": "host.bat", >> "%JSON_PATH%"
+echo   "type": "stdio", >> "%JSON_PATH%"
+echo   "allowed_origins": [ >> "%JSON_PATH%"
+echo     "chrome-extension://${extensionId}/" >> "%JSON_PATH%"
+echo   ] >> "%JSON_PATH%"
+echo } >> "%JSON_PATH%"
+
+REG ADD "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\easy_gemini_codex_host" /ve /t REG_SZ /d "%JSON_PATH%" /f
+
+echo インストールが完了しました。
+echo 何かキーを押すと終了します。
+pause >nul
+`;
+      const blob = new Blob([batContent], { type: 'application/bat' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'install_host.bat';
+      a.click();
+      URL.revokeObjectURL(url);
+      flash(msgEl, 'ダウンロードしました。hostフォルダに移動して実行してください。');
+    });
+  }
+
+  testCodexBtn.addEventListener('click', async () => {
+    testCodexBtn.disabled = true;
+    testCodexBtn.textContent = 'テスト中…';
+
+    try {
+      const port = chrome.runtime.connectNative('easy_gemini_codex_host');
+      
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          port.disconnect();
+          reject(new Error('タイムアウト (Native Host未インストールの可能性)'));
+        }, 5000);
+
+        port.onMessage.addListener((msg) => {
+          if (msg.id === 0) {
+            clearTimeout(timeout);
+            port.disconnect();
+            if (msg.error) {
+              reject(new Error(msg.error.message || 'Error'));
+            } else {
+              resolve();
+            }
+          }
+        });
+
+        port.onDisconnect.addListener(() => {
+          clearTimeout(timeout);
+          reject(new Error(chrome.runtime.lastError?.message || 'Native Host 接続切断'));
+        });
+
+        // Send initialize request
+        port.postMessage({
+          jsonrpc: '2.0',
+          method: 'initialize',
+          id: 0,
+          params: {
+            clientInfo: {
+              name: 'easy_gemini',
+              title: 'Easy Gemini',
+              version: '1.0.0'
+            }
+          }
+        });
+      });
+
+      flash(msgEl, '接続成功！');
+    } catch (e) {
+      flash(msgEl, '接続失敗: ' + (e.message || 'Error'));
+    } finally {
+      testCodexBtn.disabled = false;
+      testCodexBtn.textContent = '接続テスト';
     }
   });
 

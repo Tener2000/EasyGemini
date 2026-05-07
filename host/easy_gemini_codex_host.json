@@ -1,0 +1,9 @@
+{
+  "name": "easy_gemini_codex_host",
+  "description": "Codex App Server Host for Easy Gemini",
+  "path": "host.bat",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://pnejoifhikbohejmophmcegoelnnapfj/"
+  ]
+}

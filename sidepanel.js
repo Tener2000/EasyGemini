@@ -1,4 +1,4 @@
-﻿// Easy Geminiv3.8 — GoogleAuth統合
+// Easy Geminiv3.8 — GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -587,6 +587,93 @@ function bindSessionUI(root, s) {
     return content;
   }
 
+  async function callCodexAppServerText({ text, signal }) {
+    return new Promise((resolve, reject) => {
+      let resolved = false;
+      let threadId = null;
+      let outputText = '';
+
+      const port = chrome.runtime.connectNative('easy_gemini_codex_host');
+
+      function closeAndResolve(result, err) {
+        if (resolved) return;
+        resolved = true;
+        port.disconnect();
+        if (err) reject(err);
+        else resolve(result);
+      }
+
+      signal.addEventListener('abort', () => {
+        if (!resolved) {
+          port.postMessage({ jsonrpc: '2.0', method: 'turn/interrupt', id: 999, params: {} });
+          setTimeout(() => closeAndResolve(null, new Error('AbortError')), 500);
+        } else {
+          closeAndResolve(null, new Error('AbortError'));
+        }
+      });
+
+      port.onDisconnect.addListener(() => {
+        if (!resolved) closeAndResolve(null, new Error(chrome.runtime.lastError?.message || 'Native Host Connection Lost'));
+      });
+
+      // Start initialization
+      port.postMessage({
+        jsonrpc: '2.0',
+        method: 'initialize',
+        id: 0,
+        params: {
+          clientInfo: { name: 'easy_gemini', title: 'Easy Gemini', version: '1.0.0' }
+        }
+      });
+
+      port.onMessage.addListener((msg) => {
+        try {
+          if (msg.id === 0) {
+            if (msg.error) return closeAndResolve(null, new Error(msg.error.message || 'Initialize failed'));
+            port.postMessage({ jsonrpc: '2.0', method: 'initialized', params: {} });
+            port.postMessage({ jsonrpc: '2.0', method: 'thread/start', id: 1, params: { model: 'gpt-5.4' } });
+          }
+          
+          if (msg.id === 1) {
+            if (msg.error) return closeAndResolve(null, new Error(msg.error.message || 'Thread start failed'));
+            if (msg.result?.thread?.id) {
+              threadId = msg.result.thread.id;
+              port.postMessage({
+                jsonrpc: '2.0',
+                method: 'turn/start',
+                id: 2,
+                params: {
+                  threadId: threadId,
+                  input: [{ type: 'text', text: text }]
+                }
+              });
+            }
+          }
+
+          if (msg.id === 2 && msg.error) {
+             return closeAndResolve(null, new Error(msg.error.message || 'Turn start failed'));
+          }
+
+          if (msg.method === 'item/agentMessage/delta') {
+            const delta = msg.params?.delta;
+            if (typeof delta === 'string') {
+              outputText += delta;
+            } else if (delta?.text) {
+              outputText += delta.text;
+            }
+          }
+
+          if (msg.method === 'turn/completed') {
+            closeAndResolve(outputText);
+          }
+
+        } catch (e) {
+          console.error("Message handling error", e);
+        }
+      });
+    });
+  }
+
   async function onGenerate() {
     const text = await buildPrompt();
     if (!text) { outEl.textContent = '（指示・素材どちらも空です）'; outEl.classList.remove('empty'); return; }
@@ -596,9 +683,10 @@ function bindSessionUI(root, s) {
     const isOpenAI = modelVal.startsWith('gpt-') || modelVal.startsWith('o3-') || modelVal.startsWith('o4-');
     const isGrok = modelVal.startsWith('grok-');
     const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4');
+    const isCodexAppServer = modelVal === 'codex-app-server';
 
     // Define apiType first
-    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : isLocal ? 'local' : 'gemini';
+    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isCodexAppServer) ? 'local' : 'gemini';
 
     // Then use it
     const authPriority = await new Promise(res => chrome.storage.local.get(['geminiAuthPriority'], x => res(x?.geminiAuthPriority || 'apikey')));
@@ -708,6 +796,11 @@ function bindSessionUI(root, s) {
           model: localModel,
           text: finalPrompt,
           systemPrompt,
+          signal: s.abort.signal
+        });
+      } else if (isCodexAppServer) {
+        out = await callCodexAppServerText({
+          text: finalPrompt,
           signal: s.abort.signal
         });
       } else {

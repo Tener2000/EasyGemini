@@ -1,4 +1,4 @@
-# Easy Gemini v3.9.3
+# Easy Gemini v4.0.0
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -13,6 +13,7 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 - **Anthropic Claude** - Claude Sonnet 4, Claude Opus 4.6, Claude Haiku 4.5
 - **OpenAI GPT** - GPT-5.2, GPT-5, GPT-5 mini, o4シリーズ
 - **xAI Grok** - Grok 4.1 Fast (Reasoning)
+- **Codex App Server** - ローカル環境のファイルやコマンド操作を代行するエージェント機能（Native Messaging経由で通信）
 
 ### 🧠 思考モード (Thinking Mode)
 - Gemma 4などの推論モデルにおいて、回答前の思考プロセスを可視化。
@@ -73,6 +74,14 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
    - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys)でAPIキーを取得
 4. 「保存」をクリック
 
+### Codex App Server の利用設定（オプション）
+ローカルのファイルやコマンドを操作できる「Codex App Server」を利用するには、ChromeのNative Messagingを利用した初期設定が必要です。
+1. 設定画面を開き、「Codex App Server (Native Messaging)」のセクションから**「設定バッチ(.bat)をダウンロード」**をクリック
+2. ダウンロードされた `install_host.bat` を拡張機能フォルダ内の `host` フォルダ (`Easy Gemini/host`) に移動
+3. 移動した `install_host.bat` をダブルクリックして実行（レジストリに登録されます）
+4. 設定画面の「接続テスト」をクリックして「接続成功！」と出れば準備完了です。
+※ あらかじめPCに Node.js がインストールされており、Codex CLI (`npm install -g @openai/codex`) が利用できる環境が必要です。
+
 ## 📖 使い方
 
 ### 基本的な使い方
@@ -122,6 +131,9 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.0.0
+- Codex App Server (Local Agent) との直接通信機能を追加（Native Messaging連携）
 
 ### v3.9.3
 - Gemma 4 (Local LLM) への対応を追加

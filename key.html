@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Easy Geminiv3.9.3 - 設定</title>
+  <title>Easy Geminiv4.0.0 - 設定</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -173,6 +173,18 @@
         <div style="display: flex; gap: 8px; margin-bottom: 8px;">
           <input id="localModel" type="text" placeholder="モデル名 (例: qwen3.5-9b)" autocomplete="off" style="flex: 1;" />
           <button id="testLocal" style="background: transparent; font-size: 12px; width: auto; white-space: nowrap;">接続テスト</button>
+        </div>
+      </div>
+      <div style="height:8px;"></div>
+      <div style="padding: 10px; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px;">
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">Codex App Server (Native Messaging)</div>
+        <p class="hint" style="margin-bottom: 8px;">Codex App Server と直接通信するには初期設定（レジストリ登録）が必要です。</p>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+          <span style="font-size: 12px; color: gray;">拡張機能ID: <span id="extIdLabel" style="font-weight: bold; color: #fff;"></span></span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="downloadHostBat" style="background: #34a853; color: white; font-size: 12px;">設定バッチ(.bat)をダウンロード</button>
+          <button id="testCodex" style="background: transparent; font-size: 12px;">接続テスト</button>
         </div>
       </div>
       <div style="height:8px;"></div>
