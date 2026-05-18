@@ -1,4 +1,4 @@
-// Easy Gemini v4.0.0 — GoogleAuth統合
+// Easy Gemini v4.0.1 — GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -41,6 +41,7 @@ const XAI_HOST = 'https://api.x.ai/v1';
 const API_USAGE_KEY = 'easyGemini.apiUsage';
 const HISTORY_KEY = 'easyGemini.history';
 const HISTORY_MAX = 100;
+const DEFAULT_GEMINI_MODEL = 'gemini-3-flash-preview';
 
 // ========= API使用量追跡 =========
 async function getApiUsage() {
@@ -118,7 +119,7 @@ function renderPresetOptions(sel, list) {
 function ensureOneSession() {
   if (sessions.length === 0) {
     const id = newId();
-    sessions.push({ id, title: 'NEW', model: 'gemini-3.1-flash-lite-preview', tpl: '', src: '', out: '', status: '', running: false, abort: null, thinkingEnabled: false, createdAt: now(), updatedAt: now() });
+    sessions.push({ id, title: 'NEW', model: DEFAULT_GEMINI_MODEL, tpl: '', src: '', out: '', status: '', running: false, abort: null, thinkingEnabled: false, createdAt: now(), updatedAt: now() });
     activeId = id;
   }
 }
@@ -129,7 +130,7 @@ function setActive(id) {
 }
 function addTab() {
   const id = newId();
-  sessions.push({ id, title: 'NEW', model: 'gemini-3.1-flash-lite-preview', tpl: '', src: '', out: '', status: '', running: false, abort: null, thinkingEnabled: false, createdAt: now(), updatedAt: now() });
+  sessions.push({ id, title: 'NEW', model: DEFAULT_GEMINI_MODEL, tpl: '', src: '', out: '', status: '', running: false, abort: null, thinkingEnabled: false, createdAt: now(), updatedAt: now() });
   setActive(id);
 }
 function closeTab(id) {
@@ -213,7 +214,8 @@ function bindSessionUI(root, s) {
   const thinkingCheck = $('[data-k="thinking"]', root);
 
   // 初期値
-  modelSel.value = s.model || 'gemini-3.1-flash-lite-preview';
+  modelSel.value = s.model || DEFAULT_GEMINI_MODEL;
+  if (!modelSel.value) modelSel.value = DEFAULT_GEMINI_MODEL;
   titleEl.value = s.title || '';
   tplEl.value = s.tpl || '';
   srcEl.value = s.src || '';
@@ -307,16 +309,16 @@ function bindSessionUI(root, s) {
     return tpl || src;
   }
   async function callGeminiText({ apiKey, token, model, text, systemPrompt, signal }) {
-    const basePrompt = typeof systemPrompt === 'string' && systemPrompt.length
-      ? `${systemPrompt}\n\nUser prompt:\n${text}`
-      : text;
-    const body = { contents: [{ role: 'user', parts: [{ text: basePrompt }] }] };
+    const body = { contents: [{ role: 'user', parts: [{ text }] }] };
+    if (typeof systemPrompt === 'string' && systemPrompt.trim()) {
+      body.systemInstruction = { parts: [{ text: systemPrompt.trim() }] };
+    }
 
     let url = `${GEMINI_HOST}/models/${model}:generateContent`;
     const headers = { 'Content-Type': 'application/json' };
 
     if (apiKey) {
-      url += `?key=${encodeURIComponent(apiKey)}`;
+      headers['x-goog-api-key'] = apiKey;
     } else if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     } else {
@@ -367,8 +369,10 @@ function bindSessionUI(root, s) {
     // Model ID mapping: UI値を実際のAPI用モデルIDに変換
     // Claude 3.5は2025年7月に廃止。現在はClaude 4.x系のみ利用可能
     const modelIdMap = {
+      'claude-opus-4-7': 'claude-opus-4-7',
       'claude-opus-4-6': 'claude-opus-4-6',
       'claude-sonnet-4-6': 'claude-sonnet-4-6',
+      'claude-haiku-4-5-20251001': 'claude-haiku-4-5-20251001',
       'claude-haiku-4-5': 'claude-haiku-4-5'
     };
     const modelId = modelIdMap[model] || model;
@@ -422,7 +426,8 @@ function bindSessionUI(root, s) {
   async function callOpenAIText({ apiKey, model, text, systemPrompt, signal }) {
     const messages = [];
     if (systemPrompt) {
-      messages.push({ role: 'system', content: systemPrompt });
+      const instructionRole = /^(gpt-5|o[34]-)/.test(model) ? 'developer' : 'system';
+      messages.push({ role: instructionRole, content: systemPrompt });
     }
     messages.push({ role: 'user', content: text });
 
@@ -471,6 +476,63 @@ function bindSessionUI(root, s) {
       }
       const choices = data?.choices || [];
       return choices.map(c => c.message?.content || '').join('');
+    }
+  }
+
+  async function callOpenAIResponsesText({ apiKey, model, text, systemPrompt, signal }) {
+    const body = {
+      model,
+      input: text
+    };
+    if (systemPrompt) body.instructions = systemPrompt;
+
+    const url = `${OPENAI_HOST}/responses`;
+    const headers = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    };
+
+    const maxRetries = 5;
+    let attempt = 0;
+
+    while (true) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal
+      });
+
+      if (res.status === 429 && attempt < maxRetries) {
+        attempt++;
+        const delay = 2000 * Math.pow(2, attempt - 1);
+        await new Promise(r => setTimeout(r, delay));
+        if (signal?.aborted) throw new Error('AbortError');
+        continue;
+      }
+
+      if (!res.ok) {
+        const raw = await res.text();
+        try {
+          const j = JSON.parse(raw);
+          throw new Error(j?.error?.message || j?.message || `HTTP ${res.status}`);
+        } catch (parseErr) {
+          if (parseErr instanceof SyntaxError) throw new Error(`HTTP ${res.status}: ${raw.slice(0, 200)}`);
+          throw parseErr;
+        }
+      }
+
+      const data = await res.json();
+      const usage = data?.usage;
+      if (usage) {
+        await addApiUsage('openai', usage.input_tokens || 0, usage.output_tokens || 0);
+      }
+      if (typeof data?.output_text === 'string') return data.output_text;
+      const output = data?.output || [];
+      return output
+        .flatMap(item => item?.content || [])
+        .map(part => part?.text || '')
+        .join('');
     }
   }
 
@@ -526,6 +588,69 @@ function bindSessionUI(root, s) {
       }
       const choices = data?.choices || [];
       return choices.map(c => c.message?.content || '').join('');
+    }
+  }
+
+  async function callGrokResponsesText({ apiKey, model, text, systemPrompt, signal }) {
+    const input = [];
+    if (systemPrompt) {
+      input.push({ role: 'system', content: systemPrompt });
+    }
+    input.push({ role: 'user', content: text });
+
+    const body = {
+      model,
+      input
+    };
+
+    const url = `${XAI_HOST}/responses`;
+
+    const headers = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    };
+
+    const maxRetries = 5;
+    let attempt = 0;
+
+    while (true) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal
+      });
+
+      if (res.status === 429 && attempt < maxRetries) {
+        attempt++;
+        const delay = 2000 * Math.pow(2, attempt - 1);
+        await new Promise(r => setTimeout(r, delay));
+        if (signal?.aborted) throw new Error('AbortError');
+        continue;
+      }
+
+      if (!res.ok) {
+        const raw = await res.text();
+        try {
+          const j = JSON.parse(raw);
+          throw new Error(j?.error?.message || j?.message || `HTTP ${res.status}`);
+        } catch (parseErr) {
+          if (parseErr instanceof SyntaxError) throw new Error(`HTTP ${res.status}: ${raw.slice(0, 200)}`);
+          throw parseErr;
+        }
+      }
+
+      const data = await res.json();
+      const usage = data?.usage;
+      if (usage) {
+        await addApiUsage('grok', usage.input_tokens || usage.prompt_tokens || 0, usage.output_tokens || usage.completion_tokens || 0);
+      }
+      if (typeof data?.output_text === 'string') return data.output_text;
+      const output = data?.output || [];
+      return output
+        .flatMap(item => item?.content || [])
+        .map(part => part?.text || '')
+        .join('');
     }
   }
 
@@ -678,7 +803,7 @@ function bindSessionUI(root, s) {
     const text = await buildPrompt();
     if (!text) { outEl.textContent = '（指示・素材どちらも空です）'; outEl.classList.remove('empty'); return; }
 
-    const modelVal = modelSel.value || 'gemini-3-flash-preview';
+    const modelVal = modelSel.value || DEFAULT_GEMINI_MODEL;
     const isClaude = modelVal.startsWith('claude-');
     const isOpenAI = modelVal.startsWith('gpt-') || modelVal.startsWith('o3-') || modelVal.startsWith('o4-');
     const isGrok = modelVal.startsWith('grok-');
@@ -775,7 +900,9 @@ function bindSessionUI(root, s) {
           signal: s.abort.signal
         });
       } else if (isOpenAI) {
-        out = await callOpenAIText({
+        const useResponsesApi = /^gpt-5\.(4|5)(?:$|-)/.test(modelVal);
+        const callOpenAI = useResponsesApi ? callOpenAIResponsesText : callOpenAIText;
+        out = await callOpenAI({
           apiKey: finalApiKey,
           model: modelVal,
           text: finalPrompt,
@@ -783,7 +910,9 @@ function bindSessionUI(root, s) {
           signal: s.abort.signal
         });
       } else if (isGrok) {
-        out = await callGrokText({
+        const useResponsesApi = /^grok-4\.(3|20)(?:$|-)/.test(modelVal);
+        const callGrok = useResponsesApi ? callGrokResponsesText : callGrokText;
+        out = await callGrok({
           apiKey: finalApiKey,
           model: modelVal,
           text: finalPrompt,
@@ -952,7 +1081,7 @@ async function renderHistoryList() {
       if (s) {
         s.tpl = h.tpl || '';
         s.src = h.src || '';
-        s.model = h.model || 'gemini-3.1-flash-lite-preview';
+        s.model = h.model || DEFAULT_GEMINI_MODEL;
         renderActivePane();
       }
       historyOverlay.classList.remove('open');

@@ -119,9 +119,9 @@
   // コストレート（$/1M tokens）
   const COST_RATES = {
     gemini: { input: 0.075, output: 0.30 },      // Gemini 2.5 Flash
-    claude: { input: 3.00, output: 15.00 },       // Claude Sonnet 4
+    claude: { input: 3.00, output: 15.00 },       // Claude Sonnet 4.6
     openai: { input: 2.50, output: 10.00 },       // GPT-4o
-    grok: { input: 5.00, output: 15.00 }          // Grok (仮)
+    grok: { input: 1.25, output: 2.50 }           // Grok 4.3
   };
 
   function formatNumber(n) {

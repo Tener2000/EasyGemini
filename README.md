@@ -1,4 +1,4 @@
-# Easy Gemini v4.0.0
+# Easy Gemini v4.0.1
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -131,6 +131,13 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.0.1
+- Gemini API を公式ドキュメント準拠の `gemini-3-flash-preview` / Gemini 3.1 系に更新
+- OpenAI API に GPT-5.5 / GPT-5.4 系を追加し、現行モデルは Responses API に対応
+- Claude API に Claude Opus 4.7 / Sonnet 4.6 / Haiku 4.5 を追加
+- xAI Grok に Grok 4.3 / Grok 4.20 を追加し、現行モデルは Responses API に対応
+- Grok 4.3 向けに使用量ダッシュボードの概算単価を更新
 
 ### v4.0.0
 - Codex App Server (Local Agent) との直接通信機能を追加（Native Messaging連携）
