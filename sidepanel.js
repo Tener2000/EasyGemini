@@ -1,4 +1,4 @@
-// Easy Gemini v4.0.1 — GoogleAuth統合
+// Easy Gemini v4.0.2 — GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -712,6 +712,50 @@ function bindSessionUI(root, s) {
     return content;
   }
 
+  async function callHermesCliText({ provider, model, text, systemPrompt, signal }) {
+    return new Promise((resolve, reject) => {
+      let resolved = false;
+      const port = chrome.runtime.connectNative('easy_gemini_codex_host');
+      const prompt = systemPrompt ? `${systemPrompt}\n\nUser prompt:\n${text}` : text;
+
+      function closeAndResolve(result, err) {
+        if (resolved) return;
+        resolved = true;
+        try { port.disconnect(); } catch {}
+        if (err) reject(err);
+        else resolve(result);
+      }
+
+      signal.addEventListener('abort', () => {
+        if (!resolved) {
+          try { port.postMessage({ jsonrpc: '2.0', method: 'hermes/cancel', id: 999, params: {} }); } catch {}
+          closeAndResolve(null, new Error('AbortError'));
+        }
+      });
+
+      port.onDisconnect.addListener(() => {
+        if (!resolved) closeAndResolve(null, new Error(chrome.runtime.lastError?.message || 'Native Host Connection Lost'));
+      });
+
+      port.onMessage.addListener((msg) => {
+        if (msg?.id !== 1001) return;
+        if (msg.error) closeAndResolve(null, new Error(msg.error.message || 'Hermes failed'));
+        else closeAndResolve(msg.result?.text || '');
+      });
+
+      port.postMessage({
+        jsonrpc: '2.0',
+        method: 'hermes/oneshot',
+        id: 1001,
+        params: {
+          prompt,
+          provider: provider || 'xai-oauth',
+          model: model || 'grok-4'
+        }
+      });
+    });
+  }
+
   async function callCodexAppServerText({ text, signal }) {
     return new Promise((resolve, reject) => {
       let resolved = false;
@@ -808,17 +852,20 @@ function bindSessionUI(root, s) {
     const isOpenAI = modelVal.startsWith('gpt-') || modelVal.startsWith('o3-') || modelVal.startsWith('o4-');
     const isGrok = modelVal.startsWith('grok-');
     const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4');
+    const isHermesGrokWsl = modelVal === 'hermes-grok-oauth-wsl';
     const isCodexAppServer = modelVal === 'codex-app-server';
 
     // Define apiType first
-    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isCodexAppServer) ? 'local' : 'gemini';
+    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isHermesGrokWsl || isCodexAppServer) ? 'local' : 'gemini';
 
     // Then use it
     const authPriority = await new Promise(res => chrome.storage.local.get(['geminiAuthPriority'], x => res(x?.geminiAuthPriority || 'apikey')));
     const apiKeyRaw = await getKey(apiType !== 'local' ? apiType : 'gemini'); // local-llm doesn't use standard api key lookup
-    const localSettings = await new Promise(res => chrome.storage.local.get(['localUrl', 'localModel'], x => res(x)));
+    const localSettings = await new Promise(res => chrome.storage.local.get(['localUrl', 'localModel', 'hermesProvider', 'hermesModel'], x => res(x)));
     const localUrl = localSettings?.localUrl || 'http://localhost:11434/v1';
     let localModel = localSettings?.localModel || 'qwen3.5-9b';
+    const hermesProvider = localSettings?.hermesProvider || 'xai-oauth';
+    const hermesModel = localSettings?.hermesModel || 'grok-4';
 
     // Gemma 4 specific model names
     if (modelVal.startsWith('local-gemma-4')) {
@@ -853,7 +900,7 @@ function bindSessionUI(root, s) {
       finalApiKey = apiKeyRaw;
     }
 
-    if (!finalApiKey && !finalToken && !isLocal) {
+    if (!finalApiKey && !finalToken && !isLocal && !isHermesGrokWsl && !isCodexAppServer) {
       needKeyEl.style.display = 'block';
       outEl.textContent = isClaude
         ? 'Claude APIキーが未設定です。「設定」から保存してください。'
@@ -923,6 +970,14 @@ function bindSessionUI(root, s) {
         out = await callLocalLLMText({
           url: localUrl,
           model: localModel,
+          text: finalPrompt,
+          systemPrompt,
+          signal: s.abort.signal
+        });
+      } else if (isHermesGrokWsl) {
+        out = await callHermesCliText({
+          provider: hermesProvider,
+          model: hermesModel || 'grok-4',
           text: finalPrompt,
           systemPrompt,
           signal: s.abort.signal

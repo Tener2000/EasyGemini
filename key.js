@@ -28,17 +28,23 @@
   const localUrlEl = $('#localUrl');
   const localModelEl = $('#localModel');
   const testLocalBtn = $('#testLocal');
+  const hermesProviderEl = $('#hermesProvider');
+  const hermesModelEl = $('#hermesModel');
+  const testHermesBtn = $('#testHermes');
   const testCodexBtn = $('#testCodex');
 
   async function loadKey() {
     const v = await new Promise(res =>
-      chrome.storage.local.get(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'codexAppServerUrl'], x => res(x))
+      chrome.storage.local.get(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'hermesProvider', 'hermesModel', 'codexAppServerUrl'], x => res(x))
     );
     keyEl.value = v?.geminiApiKey || '';
     claudeKeyEl.value = v?.claudeApiKey || '';
     openaiKeyEl.value = v?.openaiApiKey || '';
     grokKeyEl.value = v?.grokApiKey || '';
+    localUrlEl.value = v?.localUrl || '';
     localModelEl.value = v?.localModel || '';
+    hermesProviderEl.value = v?.hermesProvider || 'xai-oauth';
+    hermesModelEl.value = v?.hermesModel || 'grok-4';
 
     // Auth Priority
     const priority = v?.geminiAuthPriority || 'apikey';
@@ -55,6 +61,8 @@
     const g = (grokKeyEl.value || '').trim();
     const lu = (localUrlEl.value || '').trim();
     const lm = (localModelEl.value || '').trim();
+    const hp = (hermesProviderEl.value || '').trim();
+    const hm = (hermesModelEl.value || '').trim();
 
     // Get Auth Priority
     let priority = 'apikey';
@@ -70,19 +78,23 @@
       openaiApiKey: o,
       grokApiKey: g,
       localUrl: lu,
-      localModel: lm
+      localModel: lm,
+      hermesProvider: hp,
+      hermesModel: hm
     });
     flash(msgEl, '保存しました');
   }
 
   async function clearKey() {
-    await chrome.storage.local.remove(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel']);
+    await chrome.storage.local.remove(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'hermesProvider', 'hermesModel']);
     keyEl.value = '';
     claudeKeyEl.value = '';
     openaiKeyEl.value = '';
     grokKeyEl.value = '';
     localUrlEl.value = '';
     localModelEl.value = '';
+    hermesProviderEl.value = 'xai-oauth';
+    hermesModelEl.value = 'grok-4';
 
     // Reset priority to default
     const radios = document.getElementsByName('geminiAuthPriority');
@@ -220,6 +232,43 @@
     }
   });
 
+  testHermesBtn.addEventListener('click', async () => {
+    const provider = (hermesProviderEl.value || '').trim() || 'xai-oauth';
+    const model = (hermesModelEl.value || '').trim() || 'grok-4';
+    testHermesBtn.disabled = true;
+    testHermesBtn.textContent = 'テスト中…';
+    let port = null;
+    try {
+      port = chrome.runtime.connectNative('easy_gemini_codex_host');
+      const result = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout')), 60000);
+        port.onMessage.addListener((msg) => {
+          if (msg?.id !== 9001) return;
+          clearTimeout(timer);
+          if (msg.error) reject(new Error(msg.error.message || 'Hermes failed'));
+          else resolve(msg.result?.text || '');
+        });
+        port.onDisconnect.addListener(() => {
+          clearTimeout(timer);
+          reject(new Error(chrome.runtime.lastError?.message || 'Native Host Connection Lost'));
+        });
+        port.postMessage({
+          jsonrpc: '2.0',
+          method: 'hermes/oneshot',
+          id: 9001,
+          params: { prompt: 'こんにちは。日本語で一文だけ返して', provider, model }
+        });
+      });
+      flash(msgEl, result ? 'Hermes接続成功' : 'Hermes接続成功（空応答）');
+    } catch (e) {
+      flash(msgEl, 'Hermes接続失敗: ' + (e.message || 'Error'));
+    } finally {
+      try { port?.disconnect(); } catch {}
+      testHermesBtn.disabled = false;
+      testHermesBtn.textContent = 'Hermes接続テスト';
+    }
+  });
+
   const extIdLabel = $('#extIdLabel');
   const downloadHostBatBtn = $('#downloadHostBat');
   if (extIdLabel) extIdLabel.textContent = chrome.runtime.id;
@@ -332,6 +381,12 @@ pause >nul
     if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
   });
   localModelEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
+  });
+  hermesProviderEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
+  });
+  hermesModelEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
   });
 

@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Easy Gemini v4.0.1 - 設定</title>
+  <title>Easy Gemini v4.0.2 - 設定</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -174,6 +174,15 @@
           <input id="localModel" type="text" placeholder="モデル名 (例: qwen3.5-9b)" autocomplete="off" style="flex: 1;" />
           <button id="testLocal" style="background: transparent; font-size: 12px; width: auto; white-space: nowrap;">接続テスト</button>
         </div>
+      </div>
+      <div style="height:8px;"></div>
+      <div style="padding: 10px; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px;">
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">Hermes Grok OAuth (WSL)</div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <input id="hermesProvider" type="text" placeholder="Provider (例: xai-oauth)" autocomplete="off" style="flex: 1;" />
+          <input id="hermesModel" type="text" placeholder="Model (例: grok-4)" autocomplete="off" style="flex: 1;" />
+        </div>
+        <button id="testHermes" style="background: transparent; font-size: 12px; width: auto; white-space: nowrap;">Hermes接続テスト</button>
       </div>
       <div style="height:8px;"></div>
       <div style="padding: 10px; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px;">

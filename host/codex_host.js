@@ -1,36 +1,133 @@
 const { spawn } = require('child_process');
 const readline = require('readline');
 
-// Spawn Codex App Server
-// using shell: true to resolve 'codex' command via PATH
-const codex = spawn('codex.cmd', ['app-server'], {
-  shell: true,
-  stdio: ['pipe', 'pipe', 'inherit']
-});
+let codex = null;
+let codexRl = null;
+const hermesChildren = new Map();
 
-codex.on('error', (err) => {
-  sendMessage({ jsonrpc: '2.0', error: { code: -32000, message: 'Failed to start codex: ' + err.message }, id: null });
-});
+function ensureCodex() {
+  if (codex) return codex;
 
-codex.on('exit', (code) => {
-  process.exit(code || 0);
-});
+  // Spawn Codex App Server. shell:true resolves codex.cmd via PATH.
+  codex = spawn('codex.cmd', ['app-server'], {
+    shell: true,
+    stdio: ['pipe', 'pipe', 'inherit']
+  });
 
-// Read line by line from Codex and send to Chrome
-const rl = readline.createInterface({
-  input: codex.stdout,
-  terminal: false
-});
+  codex.on('error', (err) => {
+    sendMessage({ jsonrpc: '2.0', error: { code: -32000, message: 'Failed to start codex: ' + err.message }, id: null });
+  });
 
-rl.on('line', (line) => {
-  if (!line.trim()) return;
-  try {
-    const msg = JSON.parse(line);
-    sendMessage(msg);
-  } catch (e) {
-    // Ignore non-JSON lines or log them to stderr
+  codex.on('exit', () => {
+    codex = null;
+    codexRl = null;
+  });
+
+  // Read line by line from Codex and send to Chrome.
+  codexRl = readline.createInterface({
+    input: codex.stdout,
+    terminal: false
+  });
+
+  codexRl.on('line', (line) => {
+    if (!line.trim()) return;
+    try {
+      const msg = JSON.parse(line);
+      sendMessage(msg);
+    } catch (e) {
+      // Ignore non-JSON lines or log them to stderr.
+    }
+  });
+
+  return codex;
+}
+
+function runHermesOneshot(message) {
+  const id = message.id ?? null;
+  const params = message.params || {};
+  const prompt = String(params.prompt || '');
+  const provider = String(params.provider || 'xai-oauth');
+  const model = String(params.model || 'grok-4');
+
+  if (!prompt.trim()) {
+    sendMessage({ jsonrpc: '2.0', id, error: { code: -32602, message: 'Hermes prompt is empty' } });
+    return;
   }
-});
+
+  const command = [
+    'hermes',
+    '-z',
+    shellQuote(prompt),
+    '--provider',
+    shellQuote(provider),
+    '--model',
+    shellQuote(model)
+  ].join(' ');
+
+  const child = spawn('wsl.exe', ['bash', '-lc', command], {
+    windowsHide: true,
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+  hermesChildren.set(id, child);
+
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (chunk) => { stdout += decodeOutput(chunk); });
+  child.stderr.on('data', (chunk) => { stderr += decodeOutput(chunk); });
+
+  child.on('error', (err) => {
+    hermesChildren.delete(id);
+    sendMessage({ jsonrpc: '2.0', id, error: { code: -32010, message: 'Failed to start Hermes via WSL: ' + err.message } });
+  });
+
+  child.on('exit', (code) => {
+    hermesChildren.delete(id);
+    if (code === 0) {
+      sendMessage({ jsonrpc: '2.0', id, result: { text: stdout.trim() } });
+    } else {
+      const messageText = (stderr || stdout || `Hermes exited with code ${code}`).trim();
+      sendMessage({ jsonrpc: '2.0', id, error: { code: -32011, message: messageText } });
+    }
+  });
+}
+
+function cancelHermes(id) {
+  if (id == null) {
+    for (const child of hermesChildren.values()) child.kill();
+    hermesChildren.clear();
+    return;
+  }
+  const child = hermesChildren.get(id);
+  if (child) {
+    child.kill();
+    hermesChildren.delete(id);
+  }
+}
+
+function decodeOutput(chunk) {
+  if (chunk.length > 2 && chunk[1] === 0) {
+    return chunk.toString('utf16le');
+  }
+  return chunk.toString('utf8');
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function handleMessage(message) {
+  if (message?.method === 'hermes/oneshot') {
+    runHermesOneshot(message);
+    return;
+  }
+  if (message?.method === 'hermes/cancel') {
+    cancelHermes(message?.params?.id);
+    return;
+  }
+
+  const appServer = ensureCodex();
+  appServer.stdin.write(JSON.stringify(message) + '\n');
+}
 
 // Native Messaging reader (Chrome -> Node)
 let buffer = Buffer.alloc(0);
@@ -46,9 +143,8 @@ process.stdin.on('data', (chunk) => {
       try {
         const messageString = messageBuffer.toString('utf8');
         const message = JSON.parse(messageString);
-        
-        // Forward to Codex
-        codex.stdin.write(JSON.stringify(message) + '\n');
+
+        handleMessage(message);
       } catch (e) {
         sendMessage({ jsonrpc: '2.0', error: { code: -32700, message: 'Parse error' }, id: null });
       }
@@ -59,7 +155,8 @@ process.stdin.on('data', (chunk) => {
 });
 
 process.stdin.on('end', () => {
-  codex.kill();
+  if (codex) codex.kill();
+  cancelHermes(null);
   process.exit(0);
 });
 

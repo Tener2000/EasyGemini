@@ -1,4 +1,4 @@
-# Easy Gemini v4.0.1
+# Easy Gemini v4.0.2
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -131,6 +131,12 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.0.2
+- Hermes Grok OAuth (WSL) を追加
+- Native Messaging 経由で `wsl.exe` から `hermes -z --provider xai-oauth --model grok-4` を実行する連携に対応
+- 設定画面に Hermes の Provider / Model と接続テストを追加
+- Grok APIキーを使わず、Hermes側の xai-oauth 認証でGrokを利用できるモードを追加
 
 ### v4.0.1
 - Gemini API を公式ドキュメント準拠の `gemini-3-flash-preview` / Gemini 3.1 系に更新
