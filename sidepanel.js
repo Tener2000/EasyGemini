@@ -41,7 +41,7 @@ const XAI_HOST = 'https://api.x.ai/v1';
 const API_USAGE_KEY = 'easyGemini.apiUsage';
 const HISTORY_KEY = 'easyGemini.history';
 const HISTORY_MAX = 100;
-const DEFAULT_GEMINI_MODEL = 'gemini-3-flash-preview';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
 
 // ========= API使用量追跡 =========
 async function getApiUsage() {

@@ -8,7 +8,7 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 ## ✨ 主な機能
 
 ### 🤖 マルチAI対応
-- **Google Gemini** - Gemini 3.1 Pro/Flash, Gemini 3 Pro/Flash
+- **Google Gemini** - Gemini 3.5 Flash, Gemini 3.1 Pro/Flash, Gemini 3 Pro/Flash
 - **Local LLM (Gemma 4)** - Gemma 4 (E2B, E4B, 26B, 31B) などのローカルモデルに対応
 - **Anthropic Claude** - Claude Sonnet 4, Claude Opus 4.6, Claude Haiku 4.5
 - **OpenAI GPT** - GPT-5.2, GPT-5, GPT-5 mini, o4シリーズ
@@ -133,6 +133,7 @@ Easy Gemini/
 ## 📝 更新履歴
 
 ### v4.0.2
+- Gemini Flash 3.5 (`gemini-3.5-flash`) に対応し、デフォルトモデルを更新
 - Hermes Grok OAuth (WSL) を追加
 - Native Messaging 経由で `wsl.exe` から `hermes -z --provider xai-oauth --model grok-4` を実行する連携に対応
 - 設定画面に Hermes の Provider / Model と接続テストを追加
