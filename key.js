@@ -31,11 +31,19 @@
   const hermesProviderEl = $('#hermesProvider');
   const hermesModelEl = $('#hermesModel');
   const testHermesBtn = $('#testHermes');
+  const hermesGptProviderEl = $('#hermesGptProvider');
+  const hermesGptModelEl = $('#hermesGptModel');
+  const testHermesGptBtn = $('#testHermesGpt');
   const testCodexBtn = $('#testCodex');
+
+  function normalizeHermesGptProvider(provider) {
+    const value = String(provider || '').trim();
+    return !value || value === 'openai' ? 'openai-codex' : value;
+  }
 
   async function loadKey() {
     const v = await new Promise(res =>
-      chrome.storage.local.get(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'hermesProvider', 'hermesModel', 'codexAppServerUrl'], x => res(x))
+      chrome.storage.local.get(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'hermesProvider', 'hermesModel', 'hermesGptProvider', 'hermesGptModel', 'codexAppServerUrl'], x => res(x))
     );
     keyEl.value = v?.geminiApiKey || '';
     claudeKeyEl.value = v?.claudeApiKey || '';
@@ -45,6 +53,8 @@
     localModelEl.value = v?.localModel || '';
     hermesProviderEl.value = v?.hermesProvider || 'xai-oauth';
     hermesModelEl.value = v?.hermesModel || 'grok-4';
+    hermesGptProviderEl.value = normalizeHermesGptProvider(v?.hermesGptProvider);
+    hermesGptModelEl.value = v?.hermesGptModel || 'gpt-5.5';
 
     // Auth Priority
     const priority = v?.geminiAuthPriority || 'apikey';
@@ -63,6 +73,8 @@
     const lm = (localModelEl.value || '').trim();
     const hp = (hermesProviderEl.value || '').trim();
     const hm = (hermesModelEl.value || '').trim();
+    const hgp = (hermesGptProviderEl.value || '').trim();
+    const hgm = (hermesGptModelEl.value || '').trim();
 
     // Get Auth Priority
     let priority = 'apikey';
@@ -80,13 +92,15 @@
       localUrl: lu,
       localModel: lm,
       hermesProvider: hp,
-      hermesModel: hm
+      hermesModel: hm,
+      hermesGptProvider: hgp,
+      hermesGptModel: hgm
     });
     flash(msgEl, '保存しました');
   }
 
   async function clearKey() {
-    await chrome.storage.local.remove(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'hermesProvider', 'hermesModel']);
+    await chrome.storage.local.remove(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'hermesProvider', 'hermesModel', 'hermesGptProvider', 'hermesGptModel']);
     keyEl.value = '';
     claudeKeyEl.value = '';
     openaiKeyEl.value = '';
@@ -95,6 +109,8 @@
     localModelEl.value = '';
     hermesProviderEl.value = 'xai-oauth';
     hermesModelEl.value = 'grok-4';
+    hermesGptProviderEl.value = 'openai-codex';
+    hermesGptModelEl.value = 'gpt-5.5';
 
     // Reset priority to default
     const radios = document.getElementsByName('geminiAuthPriority');
@@ -269,6 +285,43 @@
     }
   });
 
+  testHermesGptBtn.addEventListener('click', async () => {
+    const provider = normalizeHermesGptProvider(hermesGptProviderEl.value);
+    const model = (hermesGptModelEl.value || '').trim() || 'gpt-5.5';
+    testHermesGptBtn.disabled = true;
+    testHermesGptBtn.textContent = 'テスト中…';
+    let port = null;
+    try {
+      port = chrome.runtime.connectNative('easy_gemini_codex_host');
+      const result = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout')), 60000);
+        port.onMessage.addListener((msg) => {
+          if (msg?.id !== 9002) return;
+          clearTimeout(timer);
+          if (msg.error) reject(new Error(msg.error.message || 'Hermes failed'));
+          else resolve(msg.result?.text || '');
+        });
+        port.onDisconnect.addListener(() => {
+          clearTimeout(timer);
+          reject(new Error(chrome.runtime.lastError?.message || 'Disconnected'));
+        });
+        port.postMessage({
+          jsonrpc: '2.0',
+          method: 'hermes/oneshot',
+          id: 9002,
+          params: { prompt: 'こんにちは。日本語で一文だけ返して', provider, model }
+        });
+      });
+      flash(msgEl, result ? 'Hermes GPT接続成功' : 'Hermes GPT接続成功（空応答）');
+    } catch (e) {
+      flash(msgEl, 'Hermes GPT接続失敗: ' + (e.message || 'Error'));
+    } finally {
+      try { port?.disconnect(); } catch {}
+      testHermesGptBtn.disabled = false;
+      testHermesGptBtn.textContent = 'Hermes GPT接続テスト';
+    }
+  });
+
   const extIdLabel = $('#extIdLabel');
   const downloadHostBatBtn = $('#downloadHostBat');
   if (extIdLabel) extIdLabel.textContent = chrome.runtime.id;
@@ -387,6 +440,12 @@ pause >nul
     if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
   });
   hermesModelEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
+  });
+  hermesGptProviderEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
+  });
+  hermesGptModelEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
   });
 

@@ -86,9 +86,20 @@ function runHermesOneshot(message) {
       sendMessage({ jsonrpc: '2.0', id, result: { text: stdout.trim() } });
     } else {
       const messageText = (stderr || stdout || `Hermes exited with code ${code}`).trim();
-      sendMessage({ jsonrpc: '2.0', id, error: { code: -32011, message: messageText } });
+      sendMessage({ jsonrpc: '2.0', id, error: { code: -32011, message: formatHermesError(messageText) } });
     }
   });
+}
+
+function formatHermesError(text) {
+  const raw = String(text || '').trim();
+  if (/No Codex credentials stored/i.test(raw)) {
+    return 'Hermes の openai-codex 認証が未設定です。WSL のターミナルで `hermes auth add openai-codex --type oauth` を実行してログインしてください。';
+  }
+  if (/Unknown provider 'openai'/i.test(raw)) {
+    return "Hermes provider 'openai' は未登録です。GPT-5.5 (Hermes WSL) では provider に `openai-codex` を指定してください。";
+  }
+  return raw || 'Hermes failed';
 }
 
 function cancelHermes(id) {

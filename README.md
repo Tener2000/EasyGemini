@@ -1,4 +1,4 @@
-# Easy Gemini v4.0.2
+# Easy Gemini v4.0.3
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -11,7 +11,7 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 - **Google Gemini** - Gemini 3.5 Flash, Gemini 3.1 Pro/Flash, Gemini 3 Pro/Flash
 - **Local LLM (Gemma 4)** - Gemma 4 (E2B, E4B, 26B, 31B) などのローカルモデルに対応
 - **Anthropic Claude** - Claude Sonnet 4, Claude Opus 4.6, Claude Haiku 4.5
-- **OpenAI GPT** - GPT-5.2, GPT-5, GPT-5 mini, o4シリーズ
+- **OpenAI GPT** - GPT-5.5, GPT-5.4, GPT-5.2, GPT-5, GPT-5 mini, o4シリーズ
 - **xAI Grok** - Grok 4.1 Fast (Reasoning)
 - **Codex App Server** - ローカル環境のファイルやコマンド操作を代行するエージェント機能（Native Messaging経由で通信）
 
@@ -82,6 +82,25 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 4. 設定画面の「接続テスト」をクリックして「接続成功！」と出れば準備完了です。
 ※ あらかじめPCに Node.js がインストールされており、Codex CLI (`npm install -g @openai/codex`) が利用できる環境が必要です。
 
+### Hermes GPT-5.5 (WSL) の利用設定（オプション）
+`GPT-5.5 (Hermes WSL)` は、WSL 上の Hermes から `openai-codex` provider を使って実行します。OpenAI API キーを使う通常の `GPT-5.5` とは別経路です。
+
+1. WSL に Hermes をセットアップする
+2. WSL のターミナルで OpenAI Codex OAuth 認証を追加する
+   ```bash
+   hermes auth add openai-codex --type oauth
+   ```
+3. 認証状態を確認する
+   ```bash
+   hermes auth status openai-codex
+   ```
+4. `logged in` と表示されたら、Easy Gemini の設定画面で「Hermes GPT-5.5 (WSL)」の接続テストを実行する
+5. サイドパネルのモデル選択で `GPT-5.5 (Hermes WSL)` を選ぶ
+
+認証は通常、同じ WSL 環境では1回設定すれば継続利用できます。トークンの期限切れ、ログアウト、WSL環境の作り直し、別ユーザー・別WSLディストリビューションでは再認証が必要です。
+
+別のマシンで利用する場合は、そのマシンごとに Chrome 拡張、Native Messaging Host、WSL、Hermes をセットアップし、WSL 側で `hermes auth add openai-codex --type oauth` を実行してください。認証情報をコピーするより、各マシンで再ログインする方法を推奨します。
+
 ## 📖 使い方
 
 ### 基本的な使い方
@@ -132,12 +151,18 @@ Easy Gemini/
 
 ## 📝 更新履歴
 
+### v4.0.3
+- GPT-5.5 (Hermes WSL) の `openai-codex` 認証手順と別マシン利用手順を README に追加
+- Hermes の Codex 認証未設定エラーを、設定手順がわかる短いメッセージで表示するように改善
+- 拡張機能のバージョンを 4.0.3 に更新
+
 ### v4.0.2
 - Gemini Flash 3.5 (`gemini-3.5-flash`) に対応し、デフォルトモデルを更新
 - Hermes Grok OAuth (WSL) を追加
 - Native Messaging 経由で `wsl.exe` から `hermes -z --provider xai-oauth --model grok-4` を実行する連携に対応
 - 設定画面に Hermes の Provider / Model と接続テストを追加
 - Grok APIキーを使わず、Hermes側の xai-oauth 認証でGrokを利用できるモードを追加
+- GPT-5.5 を OpenAI API 経由と Hermes WSL (`openai-codex`) 経由の別モデルとして選択できるように追加
 
 ### v4.0.1
 - Gemini API を公式ドキュメント準拠の `gemini-3-flash-preview` / Gemini 3.1 系に更新

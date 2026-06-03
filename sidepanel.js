@@ -1,4 +1,4 @@
-// Easy Gemini v4.0.2 — GoogleAuth統合
+// Easy Gemini v4.0.3 - GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -100,6 +100,11 @@ async function hasKey(type = 'gemini') { return Boolean(await getKey(type)); }
 async function getSystemPrompt() {
   const stored = await new Promise(res => chrome.storage.local.get([SYSTEM_PROMPT_KEY], x => res(x?.[SYSTEM_PROMPT_KEY])));
   return (typeof stored === 'string') ? stored : DEFAULT_SYSTEM_PROMPT;
+}
+
+function normalizeHermesGptProvider(provider) {
+  const value = String(provider || '').trim();
+  return !value || value === 'openai' ? 'openai-codex' : value;
 }
 
 async function loadPresets() {
@@ -853,19 +858,22 @@ function bindSessionUI(root, s) {
     const isGrok = modelVal.startsWith('grok-');
     const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4');
     const isHermesGrokWsl = modelVal === 'hermes-grok-oauth-wsl';
+    const isHermesGptWsl = modelVal === 'hermes-gpt-5.5-wsl';
     const isCodexAppServer = modelVal === 'codex-app-server';
 
     // Define apiType first
-    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isHermesGrokWsl || isCodexAppServer) ? 'local' : 'gemini';
+    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isHermesGrokWsl || isHermesGptWsl || isCodexAppServer) ? 'local' : 'gemini';
 
     // Then use it
     const authPriority = await new Promise(res => chrome.storage.local.get(['geminiAuthPriority'], x => res(x?.geminiAuthPriority || 'apikey')));
     const apiKeyRaw = await getKey(apiType !== 'local' ? apiType : 'gemini'); // local-llm doesn't use standard api key lookup
-    const localSettings = await new Promise(res => chrome.storage.local.get(['localUrl', 'localModel', 'hermesProvider', 'hermesModel'], x => res(x)));
+    const localSettings = await new Promise(res => chrome.storage.local.get(['localUrl', 'localModel', 'hermesProvider', 'hermesModel', 'hermesGptProvider', 'hermesGptModel'], x => res(x)));
     const localUrl = localSettings?.localUrl || 'http://localhost:11434/v1';
     let localModel = localSettings?.localModel || 'qwen3.5-9b';
     const hermesProvider = localSettings?.hermesProvider || 'xai-oauth';
     const hermesModel = localSettings?.hermesModel || 'grok-4';
+    const hermesGptProvider = normalizeHermesGptProvider(localSettings?.hermesGptProvider);
+    const hermesGptModel = localSettings?.hermesGptModel || 'gpt-5.5';
 
     // Gemma 4 specific model names
     if (modelVal.startsWith('local-gemma-4')) {
@@ -900,7 +908,7 @@ function bindSessionUI(root, s) {
       finalApiKey = apiKeyRaw;
     }
 
-    if (!finalApiKey && !finalToken && !isLocal && !isHermesGrokWsl && !isCodexAppServer) {
+    if (!finalApiKey && !finalToken && !isLocal && !isHermesGrokWsl && !isHermesGptWsl && !isCodexAppServer) {
       needKeyEl.style.display = 'block';
       outEl.textContent = isClaude
         ? 'Claude APIキーが未設定です。「設定」から保存してください。'
@@ -978,6 +986,14 @@ function bindSessionUI(root, s) {
         out = await callHermesCliText({
           provider: hermesProvider,
           model: hermesModel || 'grok-4',
+          text: finalPrompt,
+          systemPrompt,
+          signal: s.abort.signal
+        });
+      } else if (isHermesGptWsl) {
+        out = await callHermesCliText({
+          provider: hermesGptProvider,
+          model: hermesGptModel || 'gpt-5.5',
           text: finalPrompt,
           systemPrompt,
           signal: s.abort.signal
