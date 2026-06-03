@@ -47,7 +47,7 @@ function runHermesOneshot(message) {
   const params = message.params || {};
   const prompt = String(params.prompt || '');
   const provider = String(params.provider || 'xai-oauth');
-  const model = String(params.model || 'grok-4');
+  const model = String(params.model || 'grok-4.3');
 
   if (!prompt.trim()) {
     sendMessage({ jsonrpc: '2.0', id, error: { code: -32602, message: 'Hermes prompt is empty' } });

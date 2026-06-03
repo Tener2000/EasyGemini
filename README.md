@@ -1,4 +1,4 @@
-# Easy Gemini v4.0.3
+# Easy Gemini v4.0.4
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -151,6 +151,11 @@ Easy Gemini/
 
 ## 📝 更新履歴
 
+### v4.0.4
+- Hermes Grok OAuth (WSL) の既定モデルを `grok-4.3` に更新
+- 設定画面、接続テスト、Native Messaging ホスト、README の Grok OAuth モデル例を `grok-4.3` に統一
+- 拡張機能のバージョンを 4.0.4 に更新
+
 ### v4.0.3
 - GPT-5.5 (Hermes WSL) の `openai-codex` 認証手順と別マシン利用手順を README に追加
 - Hermes の Codex 認証未設定エラーを、設定手順がわかる短いメッセージで表示するように改善
@@ -159,7 +164,7 @@ Easy Gemini/
 ### v4.0.2
 - Gemini Flash 3.5 (`gemini-3.5-flash`) に対応し、デフォルトモデルを更新
 - Hermes Grok OAuth (WSL) を追加
-- Native Messaging 経由で `wsl.exe` から `hermes -z --provider xai-oauth --model grok-4` を実行する連携に対応
+- Native Messaging 経由で `wsl.exe` から `hermes -z --provider xai-oauth --model grok-4.3` を実行する連携に対応
 - 設定画面に Hermes の Provider / Model と接続テストを追加
 - Grok APIキーを使わず、Hermes側の xai-oauth 認証でGrokを利用できるモードを追加
 - GPT-5.5 を OpenAI API 経由と Hermes WSL (`openai-codex`) 経由の別モデルとして選択できるように追加

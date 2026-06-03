@@ -52,7 +52,7 @@
     localUrlEl.value = v?.localUrl || '';
     localModelEl.value = v?.localModel || '';
     hermesProviderEl.value = v?.hermesProvider || 'xai-oauth';
-    hermesModelEl.value = v?.hermesModel || 'grok-4';
+    hermesModelEl.value = v?.hermesModel || 'grok-4.3';
     hermesGptProviderEl.value = normalizeHermesGptProvider(v?.hermesGptProvider);
     hermesGptModelEl.value = v?.hermesGptModel || 'gpt-5.5';
 
@@ -108,7 +108,7 @@
     localUrlEl.value = '';
     localModelEl.value = '';
     hermesProviderEl.value = 'xai-oauth';
-    hermesModelEl.value = 'grok-4';
+    hermesModelEl.value = 'grok-4.3';
     hermesGptProviderEl.value = 'openai-codex';
     hermesGptModelEl.value = 'gpt-5.5';
 
@@ -250,7 +250,7 @@
 
   testHermesBtn.addEventListener('click', async () => {
     const provider = (hermesProviderEl.value || '').trim() || 'xai-oauth';
-    const model = (hermesModelEl.value || '').trim() || 'grok-4';
+    const model = (hermesModelEl.value || '').trim() || 'grok-4.3';
     testHermesBtn.disabled = true;
     testHermesBtn.textContent = 'テスト中…';
     let port = null;

@@ -1,4 +1,4 @@
-// Easy Gemini v4.0.3 - GoogleAuth統合
+// Easy Gemini v4.0.4 - GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -755,7 +755,7 @@ function bindSessionUI(root, s) {
         params: {
           prompt,
           provider: provider || 'xai-oauth',
-          model: model || 'grok-4'
+          model: model || 'grok-4.3'
         }
       });
     });
@@ -871,7 +871,7 @@ function bindSessionUI(root, s) {
     const localUrl = localSettings?.localUrl || 'http://localhost:11434/v1';
     let localModel = localSettings?.localModel || 'qwen3.5-9b';
     const hermesProvider = localSettings?.hermesProvider || 'xai-oauth';
-    const hermesModel = localSettings?.hermesModel || 'grok-4';
+    const hermesModel = localSettings?.hermesModel || 'grok-4.3';
     const hermesGptProvider = normalizeHermesGptProvider(localSettings?.hermesGptProvider);
     const hermesGptModel = localSettings?.hermesGptModel || 'gpt-5.5';
 
@@ -985,7 +985,7 @@ function bindSessionUI(root, s) {
       } else if (isHermesGrokWsl) {
         out = await callHermesCliText({
           provider: hermesProvider,
-          model: hermesModel || 'grok-4',
+          model: hermesModel || 'grok-4.3',
           text: finalPrompt,
           systemPrompt,
           signal: s.abort.signal
