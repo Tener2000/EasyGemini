@@ -1,4 +1,4 @@
-# Easy Gemini v4.0.4
+# Easy Gemini v4.0.5
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -8,10 +8,10 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 ## ✨ 主な機能
 
 ### 🤖 マルチAI対応
-- **Google Gemini** - Gemini 3.5 Flash, Gemini 3.1 Pro/Flash, Gemini 3 Pro/Flash
+- **Google Gemini** - Gemini 3.1 Flash-Lite, Gemini 3.5 Flash, Gemini 3.1 Pro, Gemini 3 Flash
 - **Local LLM (Gemma 4)** - Gemma 4 (E2B, E4B, 26B, 31B) などのローカルモデルに対応
-- **Anthropic Claude** - Claude Sonnet 4, Claude Opus 4.6, Claude Haiku 4.5
-- **OpenAI GPT** - GPT-5.5, GPT-5.4, GPT-5.2, GPT-5, GPT-5 mini, o4シリーズ
+- **Anthropic Claude** - Claude Fable 5, Claude Opus 4.8, Claude Sonnet 5, Claude Haiku 4.5
+- **OpenAI GPT** - GPT-5.6, GPT-5.6 Terra, GPT-5.6 Luna, o4シリーズ
 - **xAI Grok** - Grok 4.1 Fast (Reasoning)
 - **Codex App Server** - ローカル環境のファイルやコマンド操作を代行するエージェント機能（Native Messaging経由で通信）
 
@@ -83,7 +83,7 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 ※ あらかじめPCに Node.js がインストールされており、Codex CLI (`npm install -g @openai/codex`) が利用できる環境が必要です。
 
 ### Hermes GPT-5.5 (WSL) の利用設定（オプション）
-`GPT-5.5 (Hermes WSL)` は、WSL 上の Hermes から `openai-codex` provider を使って実行します。OpenAI API キーを使う通常の `GPT-5.5` とは別経路です。
+`GPT-5.5 (Hermes WSL)` は、WSL 上の Hermes から `openai-codex` provider を使って実行します。OpenAI API キーを使う通常の `GPT-5.6` とは別経路です。Hermes の openai-codex provider では現時点で `gpt-5.6` が最終応答を返さないため、既定値は `gpt-5.5` のままにしています。
 
 1. WSL に Hermes をセットアップする
 2. WSL のターミナルで OpenAI Codex OAuth 認証を追加する
@@ -150,6 +150,13 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.0.5
+- Gemini のデフォルトを軽量な `gemini-3.1-flash-lite` に変更し、終了済みプレビューを安定版へ読み替えるように更新
+- Claude API に Claude Fable 5 / Opus 4.8 / Sonnet 5 を追加し、旧Claudeモデルを現行モデルへ読み替えるように更新
+- OpenAI API の選択肢を GPT-5.6 系に更新し、旧GPT-5系モデルを整理
+- Hermes WSL 経由の GPT は実動確認済みの `gpt-5.5` を維持
+- 拡張機能のバージョンを 4.0.5 に更新
 
 ### v4.0.4
 - Hermes Grok OAuth (WSL) の既定モデルを `grok-4.3` に更新

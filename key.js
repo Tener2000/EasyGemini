@@ -41,6 +41,11 @@
     return !value || value === 'openai' ? 'openai-codex' : value;
   }
 
+  function normalizeHermesGptModel(model) {
+    const value = String(model || '').trim();
+    return !value || value === 'gpt-5.6' ? 'gpt-5.5' : value;
+  }
+
   async function loadKey() {
     const v = await new Promise(res =>
       chrome.storage.local.get(['geminiApiKey', 'geminiAuthPriority', 'claudeApiKey', 'openaiApiKey', 'grokApiKey', 'localUrl', 'localModel', 'hermesProvider', 'hermesModel', 'hermesGptProvider', 'hermesGptModel', 'codexAppServerUrl'], x => res(x))
@@ -54,7 +59,7 @@
     hermesProviderEl.value = v?.hermesProvider || 'xai-oauth';
     hermesModelEl.value = v?.hermesModel || 'grok-4.3';
     hermesGptProviderEl.value = normalizeHermesGptProvider(v?.hermesGptProvider);
-    hermesGptModelEl.value = v?.hermesGptModel || 'gpt-5.5';
+    hermesGptModelEl.value = normalizeHermesGptModel(v?.hermesGptModel);
 
     // Auth Priority
     const priority = v?.geminiAuthPriority || 'apikey';
@@ -146,9 +151,9 @@
 
   // コストレート（$/1M tokens）
   const COST_RATES = {
-    gemini: { input: 0.075, output: 0.30 },      // Gemini 2.5 Flash
-    claude: { input: 3.00, output: 15.00 },       // Claude Sonnet 4.6
-    openai: { input: 2.50, output: 10.00 },       // GPT-4o
+    gemini: { input: 0.25, output: 1.50 },       // Gemini 3.1 Flash-Lite
+    claude: { input: 3.00, output: 15.00 },       // Claude Sonnet 5
+    openai: { input: 5.00, output: 30.00 },       // GPT-5.6 Sol
     grok: { input: 1.25, output: 2.50 }           // Grok 4.3
   };
 
@@ -287,7 +292,7 @@
 
   testHermesGptBtn.addEventListener('click', async () => {
     const provider = normalizeHermesGptProvider(hermesGptProviderEl.value);
-    const model = (hermesGptModelEl.value || '').trim() || 'gpt-5.5';
+    const model = normalizeHermesGptModel(hermesGptModelEl.value);
     testHermesGptBtn.disabled = true;
     testHermesGptBtn.textContent = 'テスト中…';
     let port = null;

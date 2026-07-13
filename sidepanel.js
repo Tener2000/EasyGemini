@@ -1,4 +1,4 @@
-// Easy Gemini v4.0.4 - GoogleAuth統合
+// Easy Gemini v4.0.5 - GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -41,7 +41,36 @@ const XAI_HOST = 'https://api.x.ai/v1';
 const API_USAGE_KEY = 'easyGemini.apiUsage';
 const HISTORY_KEY = 'easyGemini.history';
 const HISTORY_MAX = 100;
-const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
+const LEGACY_OPENAI_MODELS = new Set([
+  'gpt-5.5',
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gpt-5.2-chat-latest',
+  'gpt-5-chat-latest',
+  'gpt-5-mini'
+]);
+const LEGACY_MODEL_ALIASES = {
+  'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
+  'gemini-3-pro-preview': 'gemini-3.1-pro-preview',
+  'claude-opus-4-7': 'claude-opus-4-8',
+  'claude-opus-4-6': 'claude-opus-4-8',
+  'claude-sonnet-4-6': 'claude-sonnet-5',
+  'claude-haiku-4-5': 'claude-haiku-4-5-20251001'
+};
+
+function normalizeSelectedModel(model) {
+  const value = String(model || '').trim();
+  if (LEGACY_OPENAI_MODELS.has(value)) return 'gpt-5.6';
+  if (value === 'hermes-gpt-5.6-wsl') return 'hermes-gpt-5.5-wsl';
+  return LEGACY_MODEL_ALIASES[value] || value;
+}
+
+function normalizeHermesGptModel(model) {
+  const value = String(model || '').trim();
+  return !value || value === 'gpt-5.6' ? 'gpt-5.5' : value;
+}
 
 // ========= API使用量追跡 =========
 async function getApiUsage() {
@@ -219,8 +248,12 @@ function bindSessionUI(root, s) {
   const thinkingCheck = $('[data-k="thinking"]', root);
 
   // 初期値
-  modelSel.value = s.model || DEFAULT_GEMINI_MODEL;
-  if (!modelSel.value) modelSel.value = DEFAULT_GEMINI_MODEL;
+  s.model = normalizeSelectedModel(s.model || DEFAULT_GEMINI_MODEL);
+  modelSel.value = s.model;
+  if (!modelSel.value) {
+    modelSel.value = DEFAULT_GEMINI_MODEL;
+    s.model = DEFAULT_GEMINI_MODEL;
+  }
   titleEl.value = s.title || '';
   tplEl.value = s.tpl || '';
   srcEl.value = s.src || '';
@@ -372,15 +405,14 @@ function bindSessionUI(root, s) {
 
   async function callClaudeText({ apiKey, model, text, systemPrompt, signal }) {
     // Model ID mapping: UI値を実際のAPI用モデルIDに変換
-    // Claude 3.5は2025年7月に廃止。現在はClaude 4.x系のみ利用可能
     const modelIdMap = {
-      'claude-opus-4-7': 'claude-opus-4-7',
-      'claude-opus-4-6': 'claude-opus-4-6',
-      'claude-sonnet-4-6': 'claude-sonnet-4-6',
+      'claude-fable-5': 'claude-fable-5',
+      'claude-opus-4-8': 'claude-opus-4-8',
+      'claude-sonnet-5': 'claude-sonnet-5',
       'claude-haiku-4-5-20251001': 'claude-haiku-4-5-20251001',
-      'claude-haiku-4-5': 'claude-haiku-4-5'
+      'claude-haiku-4-5': 'claude-haiku-4-5-20251001'
     };
-    const modelId = modelIdMap[model] || model;
+    const modelId = modelIdMap[normalizeSelectedModel(model)] || normalizeSelectedModel(model);
 
     const messages = [{ role: 'user', content: text }];
     const body = {
@@ -805,7 +837,7 @@ function bindSessionUI(root, s) {
           if (msg.id === 0) {
             if (msg.error) return closeAndResolve(null, new Error(msg.error.message || 'Initialize failed'));
             port.postMessage({ jsonrpc: '2.0', method: 'initialized', params: {} });
-            port.postMessage({ jsonrpc: '2.0', method: 'thread/start', id: 1, params: { model: 'gpt-5.4' } });
+            port.postMessage({ jsonrpc: '2.0', method: 'thread/start', id: 1, params: { model: 'gpt-5.6' } });
           }
           
           if (msg.id === 1) {
@@ -873,7 +905,7 @@ function bindSessionUI(root, s) {
     const hermesProvider = localSettings?.hermesProvider || 'xai-oauth';
     const hermesModel = localSettings?.hermesModel || 'grok-4.3';
     const hermesGptProvider = normalizeHermesGptProvider(localSettings?.hermesGptProvider);
-    const hermesGptModel = localSettings?.hermesGptModel || 'gpt-5.5';
+    const hermesGptModel = normalizeHermesGptModel(localSettings?.hermesGptModel);
 
     // Gemma 4 specific model names
     if (modelVal.startsWith('local-gemma-4')) {
@@ -955,7 +987,7 @@ function bindSessionUI(root, s) {
           signal: s.abort.signal
         });
       } else if (isOpenAI) {
-        const useResponsesApi = /^gpt-5\.(4|5)(?:$|-)/.test(modelVal);
+        const useResponsesApi = /^gpt-5\.6(?:$|-)/.test(modelVal);
         const callOpenAI = useResponsesApi ? callOpenAIResponsesText : callOpenAIText;
         out = await callOpenAI({
           apiKey: finalApiKey,
@@ -993,7 +1025,7 @@ function bindSessionUI(root, s) {
       } else if (isHermesGptWsl) {
         out = await callHermesCliText({
           provider: hermesGptProvider,
-          model: hermesGptModel || 'gpt-5.5',
+          model: hermesGptModel,
           text: finalPrompt,
           systemPrompt,
           signal: s.abort.signal
@@ -1152,7 +1184,7 @@ async function renderHistoryList() {
       if (s) {
         s.tpl = h.tpl || '';
         s.src = h.src || '';
-        s.model = h.model || DEFAULT_GEMINI_MODEL;
+        s.model = normalizeSelectedModel(h.model || DEFAULT_GEMINI_MODEL);
         renderActivePane();
       }
       historyOverlay.classList.remove('open');
