@@ -1,4 +1,4 @@
-// Easy Gemini v4.0.5 - GoogleAuth統合
+// Easy Gemini v4.1.0 - GoogleAuth統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -15,6 +15,7 @@ const toastEl = $('#toast');
 const GEMINI_HOST = 'https://generativelanguage.googleapis.com/v1beta';
 const PRESET_KEY = 'easyGemini.presets.v2';
 const PRESET_MAX = 200;
+const UNFILED_PRESET_FOLDER = '\u672a\u5206\u985e';
 const SYSTEM_PROMPT_KEY = 'easyGemini.systemPrompt';
 const DEFAULT_SYSTEM_PROMPT = [
   'You are an expert editor/writer.',
@@ -136,17 +137,78 @@ function normalizeHermesGptProvider(provider) {
   return !value || value === 'openai' ? 'openai-codex' : value;
 }
 
+function normalizePresetFolder(value) {
+  return (value || '').trim() || UNFILED_PRESET_FOLDER;
+}
+function normalizePreset(item) {
+  const createdAt = Number(item?.createdAt) || Date.now();
+  return {
+    id: item?.id || newId(),
+    name: String(item?.name || '').trim(),
+    text: String(item?.text || ''),
+    folder: normalizePresetFolder(item?.folder),
+    createdAt,
+    updatedAt: Number(item?.updatedAt) || createdAt
+  };
+}
+function samePresetKey(a, b) {
+  return normalizePresetFolder(a.folder) === normalizePresetFolder(b.folder) && (a.name || '') === (b.name || '');
+}
 async function loadPresets() {
   const v = await new Promise(res => chrome.storage.local.get([PRESET_KEY], x => res(x?.[PRESET_KEY] || [])));
-  return Array.isArray(v) ? v : [];
+  return Array.isArray(v) ? v.map(normalizePreset).filter(p => p.name && p.text) : [];
 }
-function renderPresetOptions(sel, list) {
-  sel.innerHTML = '';
-  list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+function renderPresetOptions(input, picker, list) {
+  input.value = '';
+  picker.innerHTML = '';
   if (!list.length) {
-    const o = document.createElement('option'); o.value = ''; o.textContent = '（保存済みなし）'; sel.appendChild(o); return;
+    const empty = document.createElement('div');
+    empty.className = 'preset-empty';
+    empty.textContent = '\u4fdd\u5b58\u6e08\u307f\u30d7\u30ea\u30bb\u30c3\u30c8\u306a\u3057';
+    picker.appendChild(empty);
+    return;
   }
-  list.forEach((p, i) => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${i + 1}. ${p.name}`; sel.appendChild(o); });
+
+  const groups = new Map();
+  list.forEach(p => {
+    const folder = normalizePresetFolder(p.folder);
+    if (!groups.has(folder)) groups.set(folder, []);
+    groups.get(folder).push(p);
+  });
+
+  let selected = false;
+  Array.from(groups.entries()).forEach(([folder, items], folderIndex) => {
+    const details = document.createElement('details');
+    details.className = 'preset-folder';
+    details.open = folderIndex === 0;
+
+    const summary = document.createElement('summary');
+    summary.textContent = `${folder} (${items.length})`;
+    details.appendChild(summary);
+
+    const options = document.createElement('div');
+    options.className = 'preset-options';
+    items.forEach((p, i) => {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'preset-option';
+      option.dataset.id = p.id;
+      option.textContent = `${i + 1}. ${p.name}`;
+      option.addEventListener('click', () => {
+        input.value = p.id;
+        picker.querySelectorAll('.preset-option.active').forEach(el => el.classList.remove('active'));
+        option.classList.add('active');
+      });
+      if (!selected) {
+        input.value = p.id;
+        option.classList.add('active');
+        selected = true;
+      }
+      options.appendChild(option);
+    });
+    details.appendChild(options);
+    picker.appendChild(details);
+  });
 }
 
 // ========= Tabs =========
@@ -239,6 +301,7 @@ function bindSessionUI(root, s) {
   const outEl = $('[data-k="out"]', root);
   const statusEl = $('[data-k="status"]', root);
   const presetSel = $('[data-k="presetSel"]', root);
+  const presetPicker = $('[data-k="presetPicker"]', root);
   const insertPresetBtn = $('[data-k="insertPreset"]', root);
   const exportPresetsBtn = $('[data-k="exportPresets"]', root);
   const importBtn = $('[data-k="importBtn"]', root);
@@ -269,7 +332,7 @@ function bindSessionUI(root, s) {
   toggleThinkingUI();
 
   // プリセット描画
-  loadPresets().then(list => renderPresetOptions(presetSel, list));
+  loadPresets().then(list => renderPresetOptions(presetSel, presetPicker, list));
 
   modelSel.addEventListener('change', () => { 
     s.model = modelSel.value; 
@@ -295,7 +358,7 @@ function bindSessionUI(root, s) {
   });
   exportPresetsBtn.addEventListener('click', async () => {
     const list = await loadPresets();
-    const blob = new Blob([JSON.stringify({ version: 2, items: list }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ version: 3, items: list }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `easy-gemini-presets-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
@@ -309,15 +372,22 @@ function bindSessionUI(root, s) {
       const items = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : []);
       if (!Array.isArray(items)) throw new Error('形式が不正です');
       const current = await loadPresets();
-      const byName = new Map(current.map(x => [x.name, x]));
-      for (const it of items) {
-        if (!it?.name || !it?.text) continue;
-        if (byName.has(it.name)) { const ex = byName.get(it.name); ex.text = it.text; ex.updatedAt = Date.now(); }
-        else { byName.set(it.name, { id: newId(), name: it.name, text: it.text, createdAt: Date.now(), updatedAt: Date.now() }); }
+      const merged = current.slice();
+      for (const raw of items) {
+        const it = normalizePreset(raw);
+        if (!it.name || !it.text) continue;
+        const ex = merged.find(x => samePresetKey(x, it));
+        if (ex) {
+          ex.text = it.text;
+          ex.folder = normalizePresetFolder(it.folder);
+          ex.updatedAt = Date.now();
+        } else {
+          merged.push({ ...it, id: newId(), createdAt: Date.now(), updatedAt: Date.now() });
+        }
       }
-      const merged = Array.from(byName.values()).slice(0, PRESET_MAX);
-      await chrome.storage.local.set({ [PRESET_KEY]: merged });
-      renderPresetOptions(presetSel, merged);
+      const next = merged.slice(0, PRESET_MAX);
+      await chrome.storage.local.set({ [PRESET_KEY]: next });
+      renderPresetOptions(presetSel, presetPicker, next);
       toast('プリセットを読み込みました');
     } catch (e2) { alert('読み込みに失敗: ' + (e2.message || e2)); }
   });
@@ -1110,9 +1180,10 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     const root = $('.session', paneEl);
     if (root) {
       const sel = $('[data-k="presetSel"]', root);
-      if (sel) {
+      const picker = $('[data-k="presetPicker"]', root);
+      if (sel && picker) {
         const list = await loadPresets();
-        renderPresetOptions(sel, list);
+        renderPresetOptions(sel, picker, list);
       }
     }
   }

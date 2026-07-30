@@ -1,4 +1,4 @@
-# Easy Gemini v4.0.5
+# Easy Gemini v4.1.0
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -49,6 +49,13 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 - 推定コストを自動計算
 - 使用量リセット機能
 
+
+### プリセット管理（v4.1.0）
+- プリセットをフォルダごとに分類して管理できます。
+- プリセット管理画面で、名前・本文検索とフォルダ絞り込みができます。
+- 既存フォルダはプルダウンから選択でき、新規フォルダはフォルダ名を入力して保存できます。
+- プリセット一覧はドラッグ＆ドロップで表示順を入れ替えられます。
+- サイドパネルのプリセット選択は、フォルダごとに折りたたみ表示できます。
 ## 🚀 インストール方法
 
 ### Chrome Web Storeから（準備中）
@@ -150,6 +157,13 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.1.0
+- プリセットをフォルダ分けして管理できるようにしました。
+- プリセット管理画面に検索、フォルダ絞り込み、既存フォルダ選択、新規フォルダ入力を追加しました。
+- プリセット管理画面でドラッグ＆ドロップによる表示順の入れ替えに対応しました。
+- サイドパネルのプリセット選択を、フォルダごとに折りたためるリスト形式に変更しました。
+- 拡張機能のバージョンを 4.1.0 に更新しました。
 
 ### v4.0.5
 - Gemini のデフォルトを軽量な `gemini-3.1-flash-lite` に変更し、終了済みプレビューを安定版へ読み替えるように更新

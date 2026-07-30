@@ -2,44 +2,70 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Easy Gemini v4.0.4 - プリセット管理</title>
+  <title>Easy Gemini v4.1.0 - プリセット管理</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root { color-scheme: light dark; }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial; }
-    .wrap { height: 100%; display: grid; grid-template-columns: 280px 1fr; gap: 12px; padding: 14px; }
-    .list { border:1px solid rgba(128,128,128,.35); border-radius:10px; padding: 8px; overflow: auto; }
-    .item { padding: 8px; border-radius: 8px; cursor: pointer; }
+    .wrap { height: 100%; display: grid; grid-template-columns: 300px 1fr; gap: 12px; padding: 14px; }
+    aside { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+    .list { flex: 1; min-height: 0; border:1px solid rgba(128,128,128,.35); border-radius:8px; padding: 8px; overflow: auto; }
+    .item { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: center; padding: 8px; border-radius: 8px; cursor: pointer; }
     .item.active { background: rgba(255,213,79,.25); }
+    .item.dragging { opacity: .45; }
+    .item.drop-before { box-shadow: inset 0 2px 0 #ffd54f; }
+    .item.drop-after { box-shadow: inset 0 -2px 0 #ffd54f; }
+    .handle { color: gray; cursor: grab; user-select: none; }
+    .item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .folder-label { margin: 10px 4px 4px; font-size: 12px; font-weight: 700; color: gray; }
+    .empty { padding: 16px 8px; color: gray; font-size: 13px; }
     .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    input[type="text"] { width: 100%; padding: 8px 10px; border-radius: 10px; border:1px solid rgba(128,128,128,.35); background: transparent; }
-    textarea { width: 100%; min-height: 200px; resize: vertical; padding: 10px 12px; border-radius: 10px; border:1px solid rgba(128,128,128,.35); background: transparent; }
-    button { padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(128,128,128,.35); background: transparent; }
-    button.solid { background: #ffd54f; color:#1a1a1a; font-weight: 700; }
+    label { font-size: 13px; }
+    input[type="text"], select { width: 100%; padding: 8px 10px; border-radius: 8px; border:1px solid rgba(128,128,128,.35); background: transparent; }
+    textarea { width: 100%; min-height: 260px; resize: vertical; padding: 10px 12px; border-radius: 8px; border:1px solid rgba(128,128,128,.35); background: transparent; }
+    button { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(128,128,128,.35); background: transparent; cursor: pointer; }
+    button.solid { background: #ffd54f; color:#1a1a1a; font-weight: 700; border-color: #ffd54f; }
     .hint { font-size: 12px; color: gray; }
+    main { min-width: 0; }
+    .fields { display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 8px; align-items: end; }
+    @media (max-width: 980px) { .fields { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 760px) {
+      .wrap { grid-template-columns: 1fr; height: auto; min-height: 100%; }
+      .list { max-height: 42vh; }
+      .fields { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <aside>
-      <div class="row" style="justify-content:space-between; margin-bottom:8px;">
+      <div class="row" style="justify-content:space-between;">
         <strong>プリセット一覧</strong>
-        <div class="row">
-          <button id="add" class="solid">新規</button>
-        </div>
+        <button id="add" class="solid">新規</button>
       </div>
-      <div id="list" class="list"></div>
+      <input id="search" type="text" placeholder="名前・本文を検索">
+      <select id="folderFilter" aria-label="フォルダで絞り込み"></select>
+      <div id="list" class="list" aria-label="プリセット一覧"></div>
+      <span class="hint">ドラッグ＆ドロップで表示順を入れ替えられます。</span>
     </aside>
 
     <main>
-      <div class="row">
-        <label class="row" style="flex:1;">
-          名称
-          <input id="name" type="text" placeholder="プリセット名（重名は上書き対象）">
+      <div class="fields">
+        <label>
+          名前
+          <input id="name" type="text" placeholder="プリセット名">
         </label>
-        <button id="save" class="solid">保存（買い替え上書き）</button>
+        <label>
+          既存フォルダ
+          <select id="folderSelect" aria-label="既存フォルダから選択"></select>
+        </label>
+        <label>
+          フォルダ名
+          <input id="folder" type="text" placeholder="新規フォルダはここに入力">
+        </label>
+        <button id="save" class="solid">保存</button>
         <button id="delete">削除</button>
       </div>
       <div style="margin-top:8px;">
@@ -52,7 +78,7 @@
           <button id="importBtn">読み込み</button>
           <input id="importInput" type="file" accept="application/json" style="display:none;">
         </div>
-        <span class="hint">※ 同名プリセットは保存時・読み込み時に<strong>上書き</strong>されます</span>
+        <span class="hint">既存フォルダはプルダウンから選択。新規フォルダはフォルダ名欄に入力して保存します。</span>
       </div>
     </main>
   </div>
