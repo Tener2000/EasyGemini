@@ -1,4 +1,4 @@
-# Easy Gemini v4.2.1
+# Easy Gemini v4.2.2
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -9,7 +9,7 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 
 ### 🤖 マルチAI対応
 - **Google Gemini** - Gemini 3.6 Flash, Gemini 3.5 Pro, Gemini 3.5 Flash, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro, Gemini 2.5 Flash
-- **Local LLM (Gemma 4)** - Gemma 4 (E2B, E4B, 26B, 31B) などのローカルモデルに対応
+- **Local LLM** - Gemma 4 (E2B, E4B, 26B, 31B)、Qwen3.8 27B などのローカルモデルに対応
 - **Anthropic Claude** - Claude Fable 5, Claude Opus 5, Claude Sonnet 5, Claude Haiku 4.5
 - **OpenAI GPT** - GPT-5.6, GPT-5.6 Terra, GPT-5.6 Luna, o4シリーズ
 - **xAI Grok** - Grok 4.1 Fast (Reasoning)
@@ -80,6 +80,31 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
    - **Claude**: [Anthropic Console](https://console.anthropic.com/)でAPIキーを取得
    - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys)でAPIキーを取得
 4. 「保存」をクリック
+
+### Qwen3.8 27BをOllamaで利用する（オプション）
+
+ローカルの`Qwen3.8-27B-Q4_K_M.gguf`をOllamaへ登録し、Easy Geminiから利用できます。
+
+1. 次の内容で`Modelfile`を作成します。パスは実際のGGUF保存先へ置き換えてください。
+   ```text
+   FROM C:\path\to\Qwen3.8-27B-Q4_K_M.gguf
+   ```
+2. Ollamaへ`qwen3.8-27b-local`として登録します。
+   ```powershell
+   ollama create qwen3.8-27b-local -f Modelfile
+   ```
+3. `chrome://extensions`でEasy Geminiの拡張機能IDを確認し、PowerShellでそのOriginだけを許可します。
+   ```powershell
+   [Environment]::SetEnvironmentVariable(
+     'OLLAMA_ORIGINS',
+     'chrome-extension://<拡張機能ID>',
+     'User'
+   )
+   ```
+4. Ollamaアプリを再起動し、Chromeの拡張機能画面でEasy Geminiを再読み込みします。
+5. サイドパネルのモデル選択で`Qwen3.8 27B (Local)`を選びます。
+
+OllamaへGGUFをインポートすると、Ollamaのモデル保存領域へモデル実体が複製される場合があります。LM Studioなど別のアプリにも同じGGUFを保存している場合は、ディスク使用量を確認してください。
 
 ### Codex App Server の利用設定（オプション）
 ローカルのファイルやコマンドを操作できる「Codex App Server」を利用するには、ChromeのNative Messagingを利用した初期設定が必要です。
@@ -157,6 +182,14 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.2.2
+- Ollama経由の`Qwen3.8 27B (Local)`をモデル選択へ追加しました。
+- Qwen3.8 27Bでは内部思考を無効化し、最終回答を安定して取得するようにしました。
+- 専用モデル選択時はローカルOllamaのOpenAI互換APIへ接続するようにしました。
+- OllamaのHTTP 403エラー案内を、Easy Geminiの拡張Originだけを許可する安全な設定へ改善しました。
+- READMEにGGUFのインポート、CORS設定、ディスク使用量に関する手順を追加しました。
+- 拡張機能のバージョンを4.2.2に更新しました。
 
 ### v4.2.1
 - Geminiモデルを最新のラインアップ（Gemini 3.6 Flash, Gemini 3.5 Pro, Gemini 3.5 Flash, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro, Gemini 2.5 Flash）に更新しました。

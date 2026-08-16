@@ -1,4 +1,4 @@
-// Easy Gemini v4.2.1 - 最新Geminiモデル統合
+// Easy Gemini v4.2.2 - Qwen3.8 27B ローカルモデル対応
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -778,6 +778,9 @@ function bindSessionUI(root, s) {
       model: model,
       messages: messages
     };
+    if (model === 'qwen3.8-27b-local') {
+      body.reasoning_effort = 'none';
+    }
 
     let baseUrl = url.replace(/\/+$/, '');
     if (baseUrl.includes(':11434') && !baseUrl.endsWith('/v1')) {
@@ -797,7 +800,8 @@ function bindSessionUI(root, s) {
       const raw = await res.text();
       // Ollama 403エラー対策の案内
       if (res.status === 403 && url.toLowerCase().includes('11434')) {
-        throw new Error(`HTTP 403 (Forbidden): Ollama側でChrome拡張からのアクセスがブロックされています。解決するには、Windowsのシステム環境変数に OLLAMA_ORIGINS="*" を追加し、Ollamaアプリを再起動してください。`);
+        const extensionOrigin = `chrome-extension://${chrome.runtime.id}`;
+        throw new Error(`HTTP 403 (Forbidden): Ollama側でChrome拡張からのアクセスがブロックされています。Windowsのユーザー環境変数に OLLAMA_ORIGINS="${extensionOrigin}" を設定し、Ollamaアプリを再起動してください。`);
       }
       // JSONパースしてエラーメッセージを抽出（Ollamaの場合 j.error が単なる文字列のことがある）
       try { 
@@ -964,7 +968,7 @@ function bindSessionUI(root, s) {
     const isClaude = modelVal.startsWith('claude-');
     const isOpenAI = modelVal.startsWith('gpt-') || modelVal.startsWith('o3-') || modelVal.startsWith('o4-');
     const isGrok = modelVal.startsWith('grok-');
-    const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4');
+    const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4') || modelVal === 'local-qwen3.8-27b';
     const isHermesGrokWsl = modelVal === 'hermes-grok-oauth-wsl';
     const isHermesGptWsl = modelVal === 'hermes-gpt-5.5-wsl';
     const isCodexAppServer = modelVal === 'codex-app-server';
@@ -976,7 +980,7 @@ function bindSessionUI(root, s) {
     const authPriority = await new Promise(res => chrome.storage.local.get(['geminiAuthPriority'], x => res(x?.geminiAuthPriority || 'apikey')));
     const apiKeyRaw = await getKey(apiType !== 'local' ? apiType : 'gemini'); // local-llm doesn't use standard api key lookup
     const localSettings = await new Promise(res => chrome.storage.local.get(['localUrl', 'localModel', 'hermesProvider', 'hermesModel', 'hermesGptProvider', 'hermesGptModel'], x => res(x)));
-    const localUrl = localSettings?.localUrl || 'http://localhost:11434/v1';
+    let localUrl = localSettings?.localUrl || 'http://localhost:11434/v1';
     let localModel = localSettings?.localModel || 'qwen3.5-9b';
     const hermesProvider = localSettings?.hermesProvider || 'xai-oauth';
     const hermesModel = localSettings?.hermesModel || 'grok-4.3';
@@ -992,6 +996,10 @@ function bindSessionUI(root, s) {
         'local-gemma-4-31b': 'gemma4:31b'
       };
       if (gemmaMap[modelVal]) localModel = gemmaMap[modelVal];
+    }
+    if (modelVal === 'local-qwen3.8-27b') {
+      localUrl = 'http://localhost:11434/v1';
+      localModel = 'qwen3.8-27b-local';
     }
 
     // Determine effective authentication for Gemini
