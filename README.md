@@ -1,4 +1,4 @@
-# Easy Gemini v4.1.0
+# Easy Gemini v4.2.1
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -8,9 +8,9 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 ## ✨ 主な機能
 
 ### 🤖 マルチAI対応
-- **Google Gemini** - Gemini 3.1 Flash-Lite, Gemini 3.5 Flash, Gemini 3.1 Pro, Gemini 3 Flash
+- **Google Gemini** - Gemini 3.6 Flash, Gemini 3.5 Pro, Gemini 3.5 Flash, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro, Gemini 2.5 Flash
 - **Local LLM (Gemma 4)** - Gemma 4 (E2B, E4B, 26B, 31B) などのローカルモデルに対応
-- **Anthropic Claude** - Claude Fable 5, Claude Opus 4.8, Claude Sonnet 5, Claude Haiku 4.5
+- **Anthropic Claude** - Claude Fable 5, Claude Opus 5, Claude Sonnet 5, Claude Haiku 4.5
 - **OpenAI GPT** - GPT-5.6, GPT-5.6 Terra, GPT-5.6 Luna, o4シリーズ
 - **xAI Grok** - Grok 4.1 Fast (Reasoning)
 - **Codex App Server** - ローカル環境のファイルやコマンド操作を代行するエージェント機能（Native Messaging経由で通信）
@@ -158,7 +158,14 @@ Easy Gemini/
 
 ## 📝 更新履歴
 
+### v4.2.1
+- Geminiモデルを最新のラインアップ（Gemini 3.6 Flash, Gemini 3.5 Pro, Gemini 3.5 Flash, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro, Gemini 2.5 Flash）に更新しました。
+- デフォルトのGeminiモデルを `gemini-3.6-flash` に変更しました。
+- 旧プレビューモデルおよび旧型番からの自動マッピング（エイリアス）処理を追加しました。
+- 拡張機能のバージョンを 4.2.1 に更新しました。
+
 ### v4.1.0
+- Claude API の Opus を `claude-opus-5` に更新し、旧 Opus 4.x 選択値を Opus 5 へ読み替えるようにしました。
 - プリセットをフォルダ分けして管理できるようにしました。
 - プリセット管理画面に検索、フォルダ絞り込み、既存フォルダ選択、新規フォルダ入力を追加しました。
 - プリセット管理画面でドラッグ＆ドロップによる表示順の入れ替えに対応しました。

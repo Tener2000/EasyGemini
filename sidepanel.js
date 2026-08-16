@@ -1,4 +1,4 @@
-// Easy Gemini v4.1.0 - GoogleAuth統合
+// Easy Gemini v4.2.1 - 最新Geminiモデル統合
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -42,7 +42,7 @@ const XAI_HOST = 'https://api.x.ai/v1';
 const API_USAGE_KEY = 'easyGemini.apiUsage';
 const HISTORY_KEY = 'easyGemini.history';
 const HISTORY_MAX = 100;
-const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
 const LEGACY_OPENAI_MODELS = new Set([
   'gpt-5.5',
   'gpt-5.4',
@@ -53,10 +53,15 @@ const LEGACY_OPENAI_MODELS = new Set([
   'gpt-5-mini'
 ]);
 const LEGACY_MODEL_ALIASES = {
+  'gemini-3-flash-preview': 'gemini-3.6-flash',
+  'gemini-3.1-pro-preview': 'gemini-3.5-pro',
+  'gemini-3-pro-preview': 'gemini-3.5-pro',
   'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
-  'gemini-3-pro-preview': 'gemini-3.1-pro-preview',
-  'claude-opus-4-7': 'claude-opus-4-8',
-  'claude-opus-4-6': 'claude-opus-4-8',
+  'gemini-1.5-pro': 'gemini-2.5-pro',
+  'gemini-1.5-flash': 'gemini-2.5-flash',
+  'claude-opus-4-8': 'claude-opus-5',
+  'claude-opus-4-7': 'claude-opus-5',
+  'claude-opus-4-6': 'claude-opus-5',
   'claude-sonnet-4-6': 'claude-sonnet-5',
   'claude-haiku-4-5': 'claude-haiku-4-5-20251001'
 };
@@ -477,7 +482,8 @@ function bindSessionUI(root, s) {
     // Model ID mapping: UI値を実際のAPI用モデルIDに変換
     const modelIdMap = {
       'claude-fable-5': 'claude-fable-5',
-      'claude-opus-4-8': 'claude-opus-4-8',
+      'claude-opus-5': 'claude-opus-5',
+      'claude-opus-4-8': 'claude-opus-5',
       'claude-sonnet-5': 'claude-sonnet-5',
       'claude-haiku-4-5-20251001': 'claude-haiku-4-5-20251001',
       'claude-haiku-4-5': 'claude-haiku-4-5-20251001'

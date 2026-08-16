@@ -151,7 +151,7 @@
 
   // コストレート（$/1M tokens）
   const COST_RATES = {
-    gemini: { input: 0.25, output: 1.50 },       // Gemini 3.1 Flash-Lite
+    gemini: { input: 0.15, output: 0.60 },       // Gemini 3.6 Flash
     claude: { input: 3.00, output: 15.00 },       // Claude Sonnet 5
     openai: { input: 5.00, output: 30.00 },       // GPT-5.6 Sol
     grok: { input: 1.25, output: 2.50 }           // Grok 4.3
