@@ -242,6 +242,36 @@ deleteBtn.addEventListener('click', async () => {
   await refresh(null);
 });
 
+const exportSkillBtn = $('#exportSkill');
+
+function parseSkillMarkdown(content, filename = '') {
+  let name = filename.replace(/\.(md|markdown)$/i, '') || 'New Skill';
+  let folder = 'Skill';
+  let description = '';
+  let text = content;
+
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+  if (fmMatch) {
+    const yamlStr = fmMatch[1];
+    text = fmMatch[2].trim();
+    yamlStr.split(/\r?\n/).forEach(line => {
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        const key = parts[0].trim().toLowerCase();
+        const val = parts.slice(1).join(':').trim().replace(/^["']|["']$/g, '');
+        if (key === 'name') name = val;
+        else if (key === 'description') description = val;
+        else if (key === 'folder' || key === 'category') folder = val;
+      }
+    });
+  } else {
+    const h1Match = content.match(/^#\s+(.+)$/m);
+    if (h1Match) name = h1Match[1].trim();
+  }
+
+  return { name, folder: normalizeFolder(folder), description, text: content };
+}
+
 exportBtn.addEventListener('click', async () => {
   const list = await loadPresets();
   const blob = new Blob([JSON.stringify({ version: 3, items: list }, null, 2)], { type: 'application/json' });
@@ -255,16 +285,46 @@ exportBtn.addEventListener('click', async () => {
   URL.revokeObjectURL(url);
 });
 
+exportSkillBtn.addEventListener('click', async () => {
+  const list = await loadPresets();
+  const p = activeId ? list.find(x => x.id === activeId) : null;
+  const name = p?.name || nameEl.value || 'skill';
+  const folder = p?.folder || folderEl.value || 'Skill';
+  const body = p?.text || textEl.value || '';
+  if (!body.trim()) { alert('書き出すプリセット/Skillを選択してください'); return; }
+
+  const skillContent = `---\nname: "${name}"\nfolder: "${folder}"\n---\n\n${body}`;
+  const blob = new Blob([skillContent], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
+  a.download = `${safeName || 'skill'}.SKILL.md`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
 importBtn.addEventListener('click', () => importInput.click());
 importInput.addEventListener('change', async (e) => {
   const file = (e.target.files || [])[0];
   e.target.value = '';
   if (!file) return;
   try {
-    const text = await file.text();
-    const json = JSON.parse(text);
-    const items = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : []);
-    if (!Array.isArray(items)) throw new Error('\u5f62\u5f0f\u304c\u6b63\u3057\u304f\u3042\u308a\u307e\u305b\u3093');
+    const rawText = await file.text();
+    const isMarkdown = file.name.endsWith('.md') || file.name.endsWith('.markdown') || (!rawText.trim().startsWith('{') && !rawText.trim().startsWith('['));
+
+    let items = [];
+    if (isMarkdown) {
+      const parsed = parseSkillMarkdown(rawText, file.name);
+      items = [parsed];
+    } else {
+      const json = JSON.parse(rawText);
+      items = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : []);
+    }
+
+    if (!Array.isArray(items) || !items.length) throw new Error('形式が正しくありません');
 
     const list = await loadPresets();
     const merged = list.slice();
@@ -282,7 +342,7 @@ importInput.addEventListener('change', async (e) => {
     await savePresets(merged.slice(0, PRESET_MAX));
     await refresh(null);
   } catch (e2) {
-    alert('\u8aad\u307f\u8fbc\u307f\u306b\u5931\u6557: ' + (e2.message || e2));
+    alert('読み込みに失敗: ' + (e2.message || e2));
   }
 });
 

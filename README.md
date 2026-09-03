@@ -1,4 +1,4 @@
-# Easy Gemini v4.2.2
+# Easy Gemini v4.3.0
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -182,6 +182,12 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.3.0
+- `SKILL.md`（YAML Frontmatter付きMarkdown）の読み込み・解析に対応しました。
+- プリセット / Skill 管理画面にて `.json` および `.md` / `SKILL.md` の一括読み込みおよび「SKILL.md書き出し」機能を追加しました。
+- サイドパネルの指示入力エリアへの `SKILL.md` ファイルのドラッグ＆ドロップ適用に対応しました。
+- 拡張機能のバージョンを 4.3.0 に更新しました。
 
 ### v4.2.2
 - Ollama経由の`Qwen3.8 27B (Local)`をモデル選択へ追加しました。

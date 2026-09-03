@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Easy Gemini v4.2.2 - プリセット管理</title>
+  <title>Easy Gemini v4.2.2 - プリセット & Skill管理</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root { color-scheme: light dark; }
@@ -42,7 +42,7 @@
   <div class="wrap">
     <aside>
       <div class="row" style="justify-content:space-between;">
-        <strong>プリセット一覧</strong>
+        <strong>プリセット / Skill 一覧</strong>
         <button id="add" class="solid">新規</button>
       </div>
       <input id="search" type="text" placeholder="名前・本文を検索">
@@ -55,7 +55,7 @@
       <div class="fields">
         <label>
           名前
-          <input id="name" type="text" placeholder="プリセット名">
+          <input id="name" type="text" placeholder="プリセット/Skill名">
         </label>
         <label>
           既存フォルダ
@@ -69,16 +69,17 @@
         <button id="delete">削除</button>
       </div>
       <div style="margin-top:8px;">
-        <textarea id="text" placeholder="このプリセットの本文（指示）"></textarea>
+        <textarea id="text" placeholder="このプリセット/Skillの本文（指示、SKILL.md形式のfrontmatter対応）"></textarea>
       </div>
 
       <div class="row" style="margin-top:8px; justify-content:space-between;">
         <div class="row">
-          <button id="export">書き出し</button>
-          <button id="importBtn">読み込み</button>
-          <input id="importInput" type="file" accept="application/json" style="display:none;">
+          <button id="export">書き出し (JSON)</button>
+          <button id="exportSkill">SKILL.md 書き出し</button>
+          <button id="importBtn">読み込み (JSON / SKILL.md)</button>
+          <input id="importInput" type="file" accept=".json,.md,.markdown,text/markdown,application/json" style="display:none;">
         </div>
-        <span class="hint">既存フォルダはプルダウンから選択。新規フォルダはフォルダ名欄に入力して保存します。</span>
+        <span class="hint">JSONまたはSKILL.md形式のファイルを選択して一括インポートできます。</span>
       </div>
     </main>
   </div>

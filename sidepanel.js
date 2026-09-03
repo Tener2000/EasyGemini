@@ -159,6 +159,34 @@ function normalizePreset(item) {
 function samePresetKey(a, b) {
   return normalizePresetFolder(a.folder) === normalizePresetFolder(b.folder) && (a.name || '') === (b.name || '');
 }
+function parseSkillMarkdown(content, filename = '') {
+  let name = filename.replace(/\.(md|markdown)$/i, '') || 'New Skill';
+  let folder = 'Skill';
+  let description = '';
+  let text = content;
+
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+  if (fmMatch) {
+    const yamlStr = fmMatch[1];
+    text = fmMatch[2].trim();
+    yamlStr.split(/\r?\n/).forEach(line => {
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        const key = parts[0].trim().toLowerCase();
+        const val = parts.slice(1).join(':').trim().replace(/^["']|["']$/g, '');
+        if (key === 'name') name = val;
+        else if (key === 'description') description = val;
+        else if (key === 'folder' || key === 'category') folder = val;
+      }
+    });
+  } else {
+    const h1Match = content.match(/^#\s+(.+)$/m);
+    if (h1Match) name = h1Match[1].trim();
+  }
+
+  return { name, folder: normalizePresetFolder(folder), description, text: content };
+}
+
 async function loadPresets() {
   const v = await new Promise(res => chrome.storage.local.get([PRESET_KEY], x => res(x?.[PRESET_KEY] || [])));
   return Array.isArray(v) ? v.map(normalizePreset).filter(p => p.name && p.text) : [];
@@ -351,6 +379,47 @@ function bindSessionUI(root, s) {
   });
   titleEl.addEventListener('input', () => { s.title = titleEl.value; s.updatedAt = now(); renderTabs(); });
   tplEl.addEventListener('input', () => { s.tpl = tplEl.value; s.updatedAt = now(); });
+  tplEl.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  tplEl.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    try {
+      const rawText = await file.text();
+      const isMarkdown = file.name.endsWith('.md') || file.name.endsWith('.markdown') || (!rawText.trim().startsWith('{') && !rawText.trim().startsWith('['));
+      let skillObj = null;
+      if (isMarkdown) {
+        skillObj = parseSkillMarkdown(rawText, file.name);
+      } else {
+        const json = JSON.parse(rawText);
+        const first = Array.isArray(json?.items) ? json.items[0] : (Array.isArray(json) ? json[0] : json);
+        if (first?.name && first?.text) skillObj = normalizePreset(first);
+      }
+
+      if (skillObj && skillObj.text) {
+        tplEl.value = skillObj.text;
+        s.tpl = tplEl.value;
+        s.updatedAt = now();
+
+        const current = await loadPresets();
+        const ex = current.find(x => samePresetKey(x, skillObj));
+        if (!ex) {
+          current.unshift({ ...normalizePreset(skillObj), id: newId(), createdAt: Date.now(), updatedAt: Date.now() });
+          const next = current.slice(0, PRESET_MAX);
+          await chrome.storage.local.set({ [PRESET_KEY]: next });
+          renderPresetOptions(presetSel, presetPicker, next);
+        }
+        toast(`Skill/プリセット適用: ${skillObj.name}`);
+      } else {
+        tplEl.value = rawText;
+        s.tpl = tplEl.value;
+        s.updatedAt = now();
+        toast('テキストを読み込みました');
+      }
+    } catch (err) {
+      toast('ファイルの読み込みに失敗しました');
+    }
+  });
   srcEl.addEventListener('input', () => { s.src = srcEl.value; s.updatedAt = now(); });
 
   insertPresetBtn.addEventListener('click', async () => {
@@ -373,9 +442,17 @@ function bindSessionUI(root, s) {
     const file = (e.target.files || [])[0]; e.target.value = '';
     if (!file) return;
     try {
-      const text = await file.text(); const json = JSON.parse(text);
-      const items = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : []);
-      if (!Array.isArray(items)) throw new Error('形式が不正です');
+      const rawText = await file.text();
+      const isMarkdown = file.name.endsWith('.md') || file.name.endsWith('.markdown') || (!rawText.trim().startsWith('{') && !rawText.trim().startsWith('['));
+      let items = [];
+      if (isMarkdown) {
+        const parsed = parseSkillMarkdown(rawText, file.name);
+        items = [parsed];
+      } else {
+        const json = JSON.parse(rawText);
+        items = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : []);
+      }
+      if (!Array.isArray(items) || !items.length) throw new Error('形式が不正です');
       const current = await loadPresets();
       const merged = current.slice();
       for (const raw of items) {
@@ -393,7 +470,7 @@ function bindSessionUI(root, s) {
       const next = merged.slice(0, PRESET_MAX);
       await chrome.storage.local.set({ [PRESET_KEY]: next });
       renderPresetOptions(presetSel, presetPicker, next);
-      toast('プリセットを読み込みました');
+      toast('プリセット/Skillを読み込みました');
     } catch (e2) { alert('読み込みに失敗: ' + (e2.message || e2)); }
   });
 

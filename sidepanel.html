@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Easy Gemini v4.2.2</title>
+  <title>Easy Gemini v4.3.0</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -361,12 +361,12 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content: space-between;">
-      <h1>Easy Gemini v4.2.2 <small id="ver" class="hint"></small></h1>
+      <h1>Easy Gemini v4.3.0 <small id="ver" class="hint"></small></h1>
       <div class="row">
         <button id="googleAuthBtn" style="font-size:12px; display:none;">G Sign in</button>
         <button id="openHistory">📚 履歴</button>
         <button id="openKey">設定</button>
-        <button id="openManager">プリセット管理</button>
+        <button id="openManager">プリセット & Skill管理</button>
       </div>
     </header>
 
@@ -436,14 +436,14 @@
       </div>
 
       <section>
-        <div><strong>指示（カスタムプロンプト）</strong> <span class="hint">管理画面のプリセットを挿入可</span></div>
-        <textarea data-k="tpl" placeholder="例）次のテキストを編集者視点で推敲。構成・語尾を整え、見出しも提案。"></textarea>
+        <div><strong>指示（カスタムプロンプト / Skill）</strong> <span class="hint">プリセット選択・SKILL.mdドロップ対応</span></div>
+        <textarea data-k="tpl" placeholder="例）次のテキストを編集者視点で推敲。（SKILL.md ファイルのドロップ読み込みに対応）"></textarea>
       </section>
 
       <section>
         <div class="row" style="justify-content:space-between;">
           <div class="row">
-            <label class="row">プリセット
+            <label class="row">プリセット / Skill
               <input data-k="presetSel" type="hidden">
               <div data-k="presetPicker" class="preset-picker" role="tree"></div>
             </label>
@@ -452,7 +452,7 @@
           <div class="row">
             <button data-k="exportPresets">書き出し</button>
             <button data-k="importBtn">読み込み</button>
-            <input data-k="importInput" class="hidden" type="file" accept="application/json" style="display:none;">
+            <input data-k="importInput" class="hidden" type="file" accept=".json,.md,.markdown,text/markdown,application/json" style="display:none;">
           </div>
         </div>
       </section>
