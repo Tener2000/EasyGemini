@@ -1,4 +1,4 @@
-// Easy Gemini v4.2.2 - Qwen3.8 27B ローカルモデル対応
+// Easy Gemini v4.2.3 - Qwen3.8 27B ローカルモデル対応
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -42,7 +42,7 @@ const XAI_HOST = 'https://api.x.ai/v1';
 const API_USAGE_KEY = 'easyGemini.apiUsage';
 const HISTORY_KEY = 'easyGemini.history';
 const HISTORY_MAX = 100;
-const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
 const LEGACY_OPENAI_MODELS = new Set([
   'gpt-5.5',
   'gpt-5.4',
@@ -53,9 +53,9 @@ const LEGACY_OPENAI_MODELS = new Set([
   'gpt-5-mini'
 ]);
 const LEGACY_MODEL_ALIASES = {
-  'gemini-3-flash-preview': 'gemini-3.6-flash',
-  'gemini-3.1-pro-preview': 'gemini-3.5-pro',
-  'gemini-3-pro-preview': 'gemini-3.5-pro',
+  'gemini-3-flash-preview': 'gemini-3.8-flash',
+  'gemini-3.5-pro': 'gemini-3.1-pro-preview',
+  'gemini-3-pro-preview': 'gemini-3.1-pro-preview',
   'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
   'gemini-1.5-pro': 'gemini-2.5-pro',
   'gemini-1.5-flash': 'gemini-2.5-flash',

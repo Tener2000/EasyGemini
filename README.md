@@ -1,4 +1,4 @@
-# Easy Gemini v4.2.2
+# Easy Gemini v4.2.3
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -8,7 +8,7 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 ## ✨ 主な機能
 
 ### 🤖 マルチAI対応
-- **Google Gemini** - Gemini 3.6 Flash, Gemini 3.5 Pro, Gemini 3.5 Flash, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro, Gemini 2.5 Flash
+- **Google Gemini** - Gemini 3.8 Flash, Gemini 3.7 Flash, Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.5 Flash-Lite, Gemini 3.1 Flash-Lite, Gemini 3.1 Pro (Preview), Gemini 2.5 Flash-Lite, Gemini 2.5 Flash, Gemini 2.5 Pro
 - **Local LLM** - Gemma 4 (E2B, E4B, 26B, 31B)、Qwen3.8 27B などのローカルモデルに対応
 - **Anthropic Claude** - Claude Fable 5, Claude Opus 5, Claude Sonnet 5, Claude Haiku 4.5
 - **OpenAI GPT** - GPT-5.6, GPT-5.6 Terra, GPT-5.6 Luna, o4シリーズ
@@ -182,6 +182,9 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.2.3
+- Gemini APIモデルの現行ラインアップと最安モデルを更新しました。
 
 ### v4.2.2
 - Ollama経由の`Qwen3.8 27B (Local)`をモデル選択へ追加しました。
