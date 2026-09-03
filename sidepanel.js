@@ -25,6 +25,10 @@ const DEFAULT_SYSTEM_PROMPT = [
 
 let sessions = [];
 let activeId = null;
+let inheritedComposition = { avatarRef: null, taskSkillRef: null, profileId: null };
+
+const avatarStore = globalThis.EasyGeminiAvatarStore;
+const runtimeContextApi = globalThis.EasyGeminiRuntimeContext;
 
 // ========= Utils =========
 function toast(msg) {
@@ -35,6 +39,32 @@ function toast(msg) {
 }
 function newId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function now() { return Date.now(); }
+function cloneRef(ref) { return ref?.id && ref?.version ? { id: ref.id, version: ref.version } : null; }
+function packRefFromKey(key) {
+  const value = String(key || '');
+  const separator = value.lastIndexOf('@');
+  return separator > 0 ? { id: value.slice(0, separator), version: value.slice(separator + 1) } : null;
+}
+function createSession(id) {
+  return {
+    id,
+    title: 'NEW',
+    model: DEFAULT_GEMINI_MODEL,
+    tpl: '',
+    src: '',
+    out: '',
+    status: '',
+    running: false,
+    abort: null,
+    thinkingEnabled: false,
+    avatarRef: cloneRef(inheritedComposition.avatarRef),
+    taskSkillRef: cloneRef(inheritedComposition.taskSkillRef),
+    profileId: inheritedComposition.profileId || null,
+    runtimeProvenance: null,
+    createdAt: now(),
+    updatedAt: now()
+  };
+}
 
 const ANTHROPIC_HOST = 'https://api.anthropic.com/v1';
 const OPENAI_HOST = 'https://api.openai.com/v1';
@@ -248,7 +278,7 @@ function renderPresetOptions(input, picker, list) {
 function ensureOneSession() {
   if (sessions.length === 0) {
     const id = newId();
-    sessions.push({ id, title: 'NEW', model: DEFAULT_GEMINI_MODEL, tpl: '', src: '', out: '', status: '', running: false, abort: null, thinkingEnabled: false, createdAt: now(), updatedAt: now() });
+    sessions.push(createSession(id));
     activeId = id;
   }
 }
@@ -259,7 +289,7 @@ function setActive(id) {
 }
 function addTab() {
   const id = newId();
-  sessions.push({ id, title: 'NEW', model: DEFAULT_GEMINI_MODEL, tpl: '', src: '', out: '', status: '', running: false, abort: null, thinkingEnabled: false, createdAt: now(), updatedAt: now() });
+  sessions.push(createSession(id));
   setActive(id);
 }
 function closeTab(id) {
@@ -322,6 +352,19 @@ async function grabActiveTabContent() {
   }
 }
 
+function capabilitiesForModel() {
+  return { web_search: false, page_extract: true, file_upload: false, code_interpreter: false };
+}
+
+function providerForModel(model) {
+  if (String(model).startsWith('claude-')) return 'claude';
+  if (String(model).startsWith('gpt-')) return 'openai';
+  if (String(model).startsWith('grok-')) return 'grok';
+  if (String(model).startsWith('hermes-')) return 'hermes';
+  if (String(model).startsWith('local-') || model === 'codex-app-server') return 'local';
+  return 'gemini';
+}
+
 // ========= Pane (Session UI) =========
 function bindSessionUI(root, s) {
   const modelSel = $('[data-k="model"]', root);
@@ -342,6 +385,14 @@ function bindSessionUI(root, s) {
   const grabBtn = $('[data-k="grabPage"]', root);
   const thinkingWrap = $('#thinkingWrap', root);
   const thinkingCheck = $('[data-k="thinking"]', root);
+  const avatarSelect = $('[data-k="avatar"]', root);
+  const taskSkillSelect = $('[data-k="taskSkill"]', root);
+  const profileSelect = $('[data-k="profile"]', root);
+  const compositionChip = $('[data-k="compositionChip"]', root);
+  const capabilityWarning = $('[data-k="capabilityWarning"]', root);
+  const runtimeDebug = $('[data-k="runtimeDebug"]', root);
+  let installedAvatars = [];
+  let installedTaskSkills = [];
 
   // 初期値
   s.model = normalizeSelectedModel(s.model || DEFAULT_GEMINI_MODEL);
@@ -358,6 +409,63 @@ function bindSessionUI(root, s) {
   outEl.classList.toggle('empty', !s.out);
   statusEl.textContent = s.status || '';
 
+  function addPackOptions(select, packs) {
+    select.replaceChildren(new Option('なし', ''));
+    packs.forEach(pack => select.appendChild(new Option(`${pack.manifest.name} v${pack.manifest.version}`, pack.key)));
+  }
+
+  function setRefValue(select, ref, label) {
+    const key = ref ? `${ref.id}@${ref.version}` : '';
+    if (key && !Array.from(select.options).some(option => option.value === key)) {
+      const missing = new Option(`${label}（未インストール）`, key);
+      missing.disabled = true;
+      select.appendChild(missing);
+    }
+    select.value = key;
+  }
+
+  function updateCompositionSummary() {
+    const avatar = installedAvatars.find(pack => pack.key === avatarSelect.value);
+    const taskSkill = installedTaskSkills.find(pack => pack.key === taskSkillSelect.value);
+    compositionChip.textContent = `${avatar ? `${avatar.manifest.name} v${avatar.manifest.version}` : 'アバターなし'} × ${taskSkill ? `${taskSkill.manifest.name} v${taskSkill.manifest.version}` : 'Task Skillなし'}`;
+    const missing = (taskSkill?.manifest?.capabilities || []).filter(item => !capabilitiesForModel(modelSel.value)[item.name]);
+    capabilityWarning.textContent = missing.map(item => {
+      const action = item.whenUnavailable === 'block' ? '生成を停止します。' : item.whenUnavailable === 'request-sources' ? '公式資料などを素材欄へ入力してください。' : '利用できる情報の範囲で続行します。';
+      return `⚠ 必要能力「${item.name}」を利用できません。${action}`;
+    }).join('\n');
+    capabilityWarning.style.display = missing.length ? 'block' : 'none';
+    runtimeDebug.textContent = s.runtimeProvenance?.referencePaths?.length ? s.runtimeProvenance.referencePaths.join('\n') : '選択なし';
+  }
+
+  async function saveComposition() {
+    inheritedComposition = { avatarRef: cloneRef(s.avatarRef), taskSkillRef: cloneRef(s.taskSkillRef), profileId: s.profileId || null };
+    await avatarStore.setLastSelection(inheritedComposition);
+  }
+
+  async function loadCompositionOptions() {
+    try {
+      [installedAvatars, installedTaskSkills] = await Promise.all([
+        avatarStore.listPacks('avatar', false),
+        avatarStore.listPacks('taskSkill', false)
+      ]);
+      const profiles = await avatarStore.listProfiles();
+      addPackOptions(avatarSelect, installedAvatars);
+      addPackOptions(taskSkillSelect, installedTaskSkills);
+      profileSelect.replaceChildren(new Option('なし', ''));
+      profiles.forEach(profile => profileSelect.appendChild(new Option(profile.name, profile.id)));
+      setRefValue(avatarSelect, s.avatarRef, 'Avatar');
+      setRefValue(taskSkillSelect, s.taskSkillRef, 'Task Skill');
+      profileSelect.value = s.profileId || '';
+      updateCompositionSummary();
+    } catch (error) {
+      capabilityWarning.textContent = `⚠ Avatar Systemの保存領域を読み込めません: ${error.message}`;
+      capabilityWarning.style.display = 'block';
+    }
+  }
+
+  loadCompositionOptions();
+  root.addEventListener('easygemini-refresh-composition', loadCompositionOptions);
+
   function toggleThinkingUI() {
     const isReasoning = modelSel.value.startsWith('local-gemma-4') || modelSel.value.includes('reasoning');
     thinkingWrap.style.display = isReasoning ? 'flex' : 'none';
@@ -371,6 +479,7 @@ function bindSessionUI(root, s) {
     s.model = modelSel.value; 
     s.updatedAt = now(); 
     toggleThinkingUI();
+    updateCompositionSummary();
     renderTabs(); 
   });
   thinkingCheck.addEventListener('change', () => {
@@ -378,6 +487,41 @@ function bindSessionUI(root, s) {
     s.updatedAt = now();
   });
   titleEl.addEventListener('input', () => { s.title = titleEl.value; s.updatedAt = now(); renderTabs(); });
+  avatarSelect.addEventListener('change', async () => {
+    s.avatarRef = packRefFromKey(avatarSelect.value);
+    s.profileId = null;
+    profileSelect.value = '';
+    s.updatedAt = now();
+    updateCompositionSummary();
+    await saveComposition();
+  });
+  taskSkillSelect.addEventListener('change', async () => {
+    s.taskSkillRef = packRefFromKey(taskSkillSelect.value);
+    s.profileId = null;
+    profileSelect.value = '';
+    s.updatedAt = now();
+    updateCompositionSummary();
+    await saveComposition();
+  });
+  profileSelect.addEventListener('change', async () => {
+    s.profileId = profileSelect.value || null;
+    if (s.profileId) {
+      const profile = await avatarStore.getProfile(s.profileId);
+      if (profile) {
+        s.avatarRef = cloneRef(profile.avatar);
+        s.taskSkillRef = cloneRef(profile.taskSkill);
+        setRefValue(avatarSelect, s.avatarRef, 'Avatar');
+        setRefValue(taskSkillSelect, s.taskSkillRef, 'Task Skill');
+        if (profile.preferredModel && Array.from(modelSel.options).some(option => option.value === profile.preferredModel)) {
+          modelSel.value = profile.preferredModel;
+          s.model = profile.preferredModel;
+        }
+      }
+    }
+    s.updatedAt = now();
+    updateCompositionSummary();
+    await saveComposition();
+  });
   tplEl.addEventListener('input', () => { s.tpl = tplEl.value; s.updatedAt = now(); });
   tplEl.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
   tplEl.addEventListener('drop', async (e) => {
@@ -1039,7 +1183,8 @@ function bindSessionUI(root, s) {
 
   async function onGenerate() {
     const text = await buildPrompt();
-    if (!text) { outEl.textContent = '（指示・素材どちらも空です）'; outEl.classList.remove('empty'); return; }
+    const hasComposition = Boolean(s.avatarRef || s.taskSkillRef);
+    if (!text && !hasComposition) { outEl.textContent = '（指示・素材どちらも空です）'; outEl.classList.remove('empty'); return; }
 
     const modelVal = modelSel.value || DEFAULT_GEMINI_MODEL;
     const isClaude = modelVal.startsWith('claude-');
@@ -1049,6 +1194,15 @@ function bindSessionUI(root, s) {
     const isHermesGrokWsl = modelVal === 'hermes-grok-oauth-wsl';
     const isHermesGptWsl = modelVal === 'hermes-gpt-5.5-wsl';
     const isCodexAppServer = modelVal === 'codex-app-server';
+
+    if (hasComposition && !isLocal) {
+      const approved = confirm(`選択したAvatar／Task Skillの本文と参照資料を「${modelVal}」へ送信します。privateな本人作例が含まれる場合があります。送信してよいですか？`);
+      if (!approved) {
+        s.status = '送信を取り消しました';
+        statusEl.textContent = s.status;
+        return;
+      }
+    }
 
     // Define apiType first
     const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isHermesGrokWsl || isHermesGptWsl || isCodexAppServer) ? 'local' : 'gemini';
@@ -1130,12 +1284,45 @@ function bindSessionUI(root, s) {
     renderTabs();
 
     try {
-      const systemPrompt = await getSystemPrompt();
+      let systemPrompt = await getSystemPrompt();
       let finalPrompt = text;
-      
+      let runtimeProvenance = null;
+
+      if (hasComposition) {
+        const [avatar, taskSkill, profile] = await Promise.all([
+          s.avatarRef ? avatarStore.getPack('avatar', s.avatarRef) : null,
+          s.taskSkillRef ? avatarStore.getPack('taskSkill', s.taskSkillRef) : null,
+          s.profileId ? avatarStore.getProfile(s.profileId) : null
+        ]);
+        if (s.avatarRef && !avatar) throw new Error(`選択したAvatar ${s.avatarRef.id}@${s.avatarRef.version} が見つかりません`);
+        if (s.taskSkillRef && !taskSkill) throw new Error(`選択したTask Skill ${s.taskSkillRef.id}@${s.taskSkillRef.version} が見つかりません`);
+        const runtime = runtimeContextApi.buildRuntimeContext({
+          baseSystemPrompt: systemPrompt,
+          avatar,
+          taskSkill,
+          profile,
+          presetInstruction: (tplEl.value || '').trim(),
+          sourceText: (srcEl.value || '').trim(),
+          provider: providerForModel(modelVal),
+          model: modelVal,
+          capabilities: capabilitiesForModel(modelVal)
+        });
+        if (runtime.blocked) throw new Error(runtime.provenance.warnings.join('\n') || 'Task Skillの必要能力が不足しています');
+        systemPrompt = runtime.systemInstruction;
+        finalPrompt = runtime.userPrompt;
+        runtimeProvenance = runtime.provenance;
+        s.runtimeProvenance = runtimeProvenance;
+        runtimeDebug.textContent = runtimeProvenance.referencePaths.length ? runtimeProvenance.referencePaths.join('\n') : '選択なし';
+        capabilityWarning.textContent = runtimeProvenance.warnings.map(warning => `⚠ ${warning}`).join('\n');
+        capabilityWarning.style.display = runtimeProvenance.warnings.length ? 'block' : 'none';
+      } else {
+        s.runtimeProvenance = null;
+        runtimeDebug.textContent = '選択なし';
+      }
+
       // Thinking Mode instruction for Gemma 4 / reasoning models
       if (s.thinkingEnabled && isLocal) {
-        finalPrompt = `[Thinking Mode Enabled]\nPlease think step-by-step within <thought> tags before providing your final answer.\n\n${text}`;
+        finalPrompt = `[Thinking Mode Enabled]\nPlease think step-by-step within <thought> tags before providing your final answer.\n\n${finalPrompt}`;
       }
 
       let out = '';
@@ -1193,7 +1380,7 @@ function bindSessionUI(root, s) {
         });
       } else if (isCodexAppServer) {
         out = await callCodexAppServerText({
-          text: finalPrompt,
+          text: hasComposition ? `[System Instruction]\n${systemPrompt}\n\n[User Request]\n${finalPrompt}` : finalPrompt,
           signal: s.abort.signal
         });
       } else {
@@ -1201,7 +1388,7 @@ function bindSessionUI(root, s) {
           apiKey: finalApiKey,
           token: finalToken,
           model: modelVal,
-          text, // Gemini uses its own system prompt handling
+          text: finalPrompt,
           systemPrompt,
           signal: s.abort.signal
         });
@@ -1217,7 +1404,11 @@ function bindSessionUI(root, s) {
         model: modelVal,
         tpl: (tplEl.value || '').trim(),
         src: (srcEl.value || '').trim(),
-        out: s.out
+        out: s.out,
+        avatar: runtimeProvenance?.avatarId ? { id: runtimeProvenance.avatarId, version: runtimeProvenance.avatarVersion } : undefined,
+        taskSkill: runtimeProvenance?.taskSkillId ? { id: runtimeProvenance.taskSkillId, version: runtimeProvenance.taskSkillVersion } : undefined,
+        referencePaths: runtimeProvenance?.referencePaths || undefined,
+        capabilityWarnings: runtimeProvenance?.warnings || undefined
       });
 
       // NEW のままなら素材の先頭行からタイトルを付ける
@@ -1264,6 +1455,16 @@ function renderActivePane() {
   paneEl.appendChild(frag);
 }
 
+function refreshActiveCompositionOptions() {
+  const root = $('.session', paneEl);
+  if (root) root.dispatchEvent(new Event('easygemini-refresh-composition'));
+}
+
+window.addEventListener('focus', refreshActiveCompositionOptions);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshActiveCompositionOptions();
+});
+
 // ========= Storage change =========
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area !== 'local') return;
@@ -1293,6 +1494,9 @@ $('#openKey').addEventListener('click', () => {
 });
 $('#openManager').addEventListener('click', () => {
   window.open(chrome.runtime.getURL('presets.html'), '_blank', 'noopener,noreferrer,width=880,height=640');
+});
+$('#openAvatarManager').addEventListener('click', () => {
+  window.open(chrome.runtime.getURL('avatar-manager.html'), '_blank', 'noopener,noreferrer,width=1040,height=720');
 });
 addTabBtn.addEventListener('click', addTab);
 
@@ -1328,6 +1532,7 @@ async function renderHistoryList() {
         <span>${formatDate(h.timestamp)}</span>
       </div>
       <div class="history-item-content">
+        ${(h.avatar || h.taskSkill) ? `<div class="history-item-label">組合せ</div><div class="history-item-tpl">${escapeHtml([h.avatar ? `Avatar: ${h.avatar.id}@${h.avatar.version}` : '', h.taskSkill ? `Task Skill: ${h.taskSkill.id}@${h.taskSkill.version}` : ''].filter(Boolean).join('\n'))}</div>` : ''}
         ${h.tpl ? `<div class="history-item-label">指示</div><div class="history-item-tpl">${escapeHtml(truncate(h.tpl, 200))}</div>` : ''}
         ${h.src ? `<div class="history-item-label">素材</div><div class="history-item-src">${escapeHtml(truncate(h.src, 200))}</div>` : ''}
         <div class="history-item-label">AI応答</div>
@@ -1347,6 +1552,9 @@ async function renderHistoryList() {
         s.tpl = h.tpl || '';
         s.src = h.src || '';
         s.model = normalizeSelectedModel(h.model || DEFAULT_GEMINI_MODEL);
+        s.avatarRef = cloneRef(h.avatar);
+        s.taskSkillRef = cloneRef(h.taskSkill);
+        s.profileId = null;
         renderActivePane();
       }
       historyOverlay.classList.remove('open');
@@ -1405,6 +1613,11 @@ historyOverlay.addEventListener('click', (e) => {
   // Show warning only if no key AND no auth
   updateKeyWarning(hasG || hasC || hasO || hasGr, gToken);
 
+  try {
+    inheritedComposition = await avatarStore.getInheritSelection()
+      ? await avatarStore.getLastSelection()
+      : { avatarRef: null, taskSkillRef: null, profileId: null };
+  } catch { }
   ensureOneSession();
   renderTabs();
   renderActivePane();

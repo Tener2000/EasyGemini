@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Easy Gemini v4.3.1 - アバター／Skill管理</title>
+  <link rel="stylesheet" href="avatar-manager.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="header">
+      <div>
+        <h1>アバター／Skill管理</h1>
+        <p>Avatar（誰の声か）とTask Skill（何をどう作るか）を独立して管理します。</p>
+      </div>
+      <div class="actions">
+        <button id="importFolder">開発用フォルダを読み込む</button>
+        <input id="folderInput" type="file" webkitdirectory multiple hidden>
+        <button id="importPortable">交換用JSONを読み込む</button>
+        <input id="portableInput" type="file" accept=".json,.easy-avatar.json,.easy-skill.json,application/json" hidden>
+        <button id="importProfile">Profileを読み込む</button>
+        <input id="profileInput" type="file" accept=".json,application/json" hidden>
+      </div>
+    </header>
+    <label class="preference"><input id="inheritSelection" type="checkbox" checked> 新規タブに前回のAvatar／Task Skill選択を引き継ぐ</label>
+
+    <nav class="tabs" aria-label="管理対象">
+      <button class="tab active" data-tab="avatar" aria-selected="true">アバター</button>
+      <button class="tab" data-tab="taskSkill" aria-selected="false">Task Skill</button>
+      <button class="tab" data-tab="profile" aria-selected="false">組合せProfile</button>
+    </nav>
+
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+    <section id="list" class="list" aria-live="polite"></section>
+  </main>
+
+  <template id="packCardTemplate">
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <h2 data-field="name"></h2>
+          <p data-field="summary" class="muted"></p>
+        </div>
+        <label class="enabled"><input data-action="enabled" type="checkbox"> 有効</label>
+      </div>
+      <p data-field="description"></p>
+      <dl data-field="metadata" class="metadata"></dl>
+      <details>
+        <summary>ファイルとmanifestを確認</summary>
+        <pre data-field="details"></pre>
+      </details>
+      <div class="card-actions">
+        <button data-action="duplicate">自分用に複製</button>
+        <button data-action="export">単一JSONで書き出す</button>
+        <button data-action="delete" class="danger">削除</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="profileCardTemplate">
+    <article class="card">
+      <h2 data-field="name"></h2>
+      <pre data-field="details"></pre>
+      <div class="card-actions"><button data-action="delete" class="danger">削除</button></div>
+    </article>
+  </template>
+
+  <script src="avatar-pack.js"></script>
+  <script src="avatar-store.js"></script>
+  <script src="avatar-manager.js"></script>
+</body>
+</html>

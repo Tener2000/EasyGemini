@@ -1,4 +1,4 @@
-# Easy Gemini v4.3.0
+# Easy Gemini v4.3.1
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -147,6 +147,14 @@ OllamaへGGUFをインポートすると、Ollamaのモデル保存領域へモ�
 2. 名前と内容を入力して保存
 3. メイン画面でプリセットを選択し「挿入」をクリック
 
+### Avatar System
+1. 「アバター／Skill管理」を開き、Avatar PackとTask Skill Packを開発用フォルダまたは交換用JSONから読み込みます。
+2. 必要なら組合せProfileも読み込みます。
+3. サイドパネルで「アバター」と「Task Skill」をそれぞれ0～1個選択します。既存プリセットとの併用も可能です。
+4. 「今回使用する参照資料」で、生成時に選ばれたファイルを確認できます。
+
+Avatarは「誰の声で書くか」、Task Skillは「何をどの工程で作るか」を担当します。どちらも「なし」なら従来と同じプロンプトを送ります。Web検索が必要なSkillを検索非対応Providerで使う場合は、公式資料などを素材欄へ入力してください。
+
 ### 複数タブでの作業
 - 「＋ 新規タブ」で新しいセッションを追加
 - 各タブは独立したモデル・プロンプト設定を保持
@@ -157,6 +165,9 @@ OllamaへGGUFをインポートすると、Ollamaのモデル保存領域へモ�
 - APIキーはローカルストレージに保存され、外部に送信されません
 - APIリクエストは各AIプロバイダーに直接送信されます
 - 履歴データはすべてローカルに保存されます
+- Avatar／Task Skillの本文と作例はIndexedDBへ保存され、選択した場合だけプロンプトへ合成されます
+- クラウドモデルへ送信する前に、privateな作例を含む可能性を確認する画面が表示されます
+- 再配布不可のAvatarは交換用JSONとして書き出せません
 
 ## 📁 ファイル構成
 
@@ -170,6 +181,10 @@ Easy Gemini/
 ├── key.js              # 設定画面ロジック
 ├── presets.html        # プリセット管理UI
 ├── presets.js          # プリセット管理ロジック
+├── avatar-manager.*    # Avatar／Task Skill／Profile管理
+├── avatar-pack.js      # パック検証・入出力
+├── avatar-store.js     # IndexedDB保存
+├── runtime-context.js  # 共通プロンプト合成
 ├── extract.js          # ページ本文抽出スクリプト
 └── icons/              # アイコン画像
 ```
@@ -182,6 +197,12 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.3.1
+- Avatar、Task Skill、組合せProfileを読み込み・管理・適用できるAvatar System MVPを追加しました。
+- Avatar／Task Skillの参照資料を依頼内容に応じて選択し、既存のシステムプロンプトやプリセットと合成する機能を追加しました。
+- 開発用フォルダーの読み込みが反応しない問題を修正しました。
+- 管理画面で読み込んだAvatar／Task Skillが、通常画面へ戻った際に自動で一覧へ反映されるよう改善しました。
 
 ### v4.3.0
 - `SKILL.md`（YAML Frontmatter付きMarkdown）の読み込み・解析に対応しました。

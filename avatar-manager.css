@@ -1,0 +1,29 @@
+:root { color-scheme: light dark; --accent: #ffd54f; --danger: #ef5350; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 20px; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 0; font-size: 17px; }
+p { line-height: 1.55; }
+.header p, .muted { color: gray; margin: 5px 0; }
+.preference { display: block; margin-top: 12px; font-size: 13px; }
+.actions, .card-actions, .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+button { padding: 8px 12px; border: 1px solid rgba(128,128,128,.4); border-radius: 9px; background: transparent; cursor: pointer; }
+button:hover, button:focus-visible { border-color: var(--accent); outline: 2px solid transparent; }
+.tabs { margin: 20px 0 12px; border-bottom: 1px solid rgba(128,128,128,.3); }
+.tab.active { background: var(--accent); color: #1a1a1a; font-weight: 700; }
+.message { min-height: 24px; padding: 4px 0; color: #b28704; }
+.list { display: grid; gap: 14px; }
+.card { border: 1px solid rgba(128,128,128,.35); border-radius: 14px; padding: 16px; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.enabled { white-space: nowrap; }
+.metadata { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px; }
+.metadata dt { color: gray; font-weight: 700; }
+.metadata dd { margin: 0; overflow-wrap: anywhere; }
+details { margin: 12px 0; }
+summary { cursor: pointer; }
+pre { max-height: 300px; overflow: auto; padding: 10px; border-radius: 8px; background: rgba(128,128,128,.1); white-space: pre-wrap; overflow-wrap: anywhere; }
+.danger { color: var(--danger); border-color: var(--danger); }
+.empty { padding: 36px; text-align: center; color: gray; border: 1px dashed rgba(128,128,128,.4); border-radius: 14px; }
+@media (max-width: 640px) { .wrap { padding: 12px; } .actions { width: 100%; } .actions button { flex: 1 1 45%; } }

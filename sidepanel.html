@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Easy Gemini v4.3.0</title>
+  <title>Easy Gemini v4.3.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -355,18 +355,45 @@
       color: gray;
       font-size: 12px;
     }
+
+    .composition-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .composition-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      font-size: 12px;
+      color: gray;
+    }
+
+    .composition-grid select { width: 100%; min-width: 0; }
+    .composition-chip { font-size: 12px; padding: 7px 9px; border-radius: 8px; background: rgba(255, 213, 79, .18); }
+    .capability-warning { display: none; font-size: 12px; padding: 8px; border: 1px solid #f9a825; border-radius: 8px; color: #b26a00; white-space: pre-wrap; }
+    .runtime-debug { margin-top: 8px; font-size: 12px; }
+    .runtime-debug pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px; background: rgba(128,128,128,.1); border-radius: 8px; }
+
+    @media (max-width: 650px) {
+      .composition-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <header class="row" style="justify-content: space-between;">
-      <h1>Easy Gemini v4.3.0 <small id="ver" class="hint"></small></h1>
+      <h1>Easy Gemini v4.3.1 <small id="ver" class="hint"></small></h1>
       <div class="row">
         <button id="googleAuthBtn" style="font-size:12px; display:none;">G Sign in</button>
         <button id="openHistory">📚 履歴</button>
         <button id="openKey">設定</button>
         <button id="openManager">プリセット & Skill管理</button>
+        <button id="openAvatarManager">アバター／Skill管理</button>
       </div>
     </header>
 
@@ -440,6 +467,26 @@
       </div>
 
       <section>
+        <div class="composition-grid">
+          <label for="avatarSelect">アバター
+            <select id="avatarSelect" data-k="avatar"><option value="">なし</option></select>
+          </label>
+          <label for="taskSkillSelect">Task Skill
+            <select id="taskSkillSelect" data-k="taskSkill"><option value="">なし</option></select>
+          </label>
+          <label for="profileSelect">組合せProfile
+            <select id="profileSelect" data-k="profile"><option value="">なし</option></select>
+          </label>
+        </div>
+        <div data-k="compositionChip" class="composition-chip">アバターなし × Task Skillなし</div>
+        <div data-k="capabilityWarning" class="capability-warning" role="alert"></div>
+        <details class="runtime-debug">
+          <summary>今回使用する参照資料</summary>
+          <pre data-k="runtimeDebug">選択なし</pre>
+        </details>
+      </section>
+
+      <section>
         <div><strong>指示（カスタムプロンプト / Skill）</strong> <span class="hint">プリセット選択・SKILL.mdドロップ対応</span></div>
         <textarea data-k="tpl" placeholder="例）次のテキストを編集者視点で推敲。（SKILL.md ファイルのドロップ読み込みに対応）"></textarea>
       </section>
@@ -498,6 +545,9 @@
     </div>
   </div>
 
+  <script src="avatar-pack.js" defer></script>
+  <script src="avatar-store.js" defer></script>
+  <script src="runtime-context.js" defer></script>
   <script src="sidepanel.js" defer></script>
 </body>
 
