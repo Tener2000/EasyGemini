@@ -1,4 +1,4 @@
-# Easy Gemini v4.3.1
+# Easy Gemini v4.3.2
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -8,10 +8,10 @@ Chromeのサイドパネルで複数のAI APIと対話できる拡張機能で�
 ## ✨ 主な機能
 
 ### 🤖 マルチAI対応
-- **Google Gemini** - Gemini 3.8 Flash, Gemini 3.7 Flash, Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.5 Flash-Lite, Gemini 3.1 Flash-Lite, Gemini 3.1 Pro (Preview), Gemini 2.5 Flash-Lite, Gemini 2.5 Flash, Gemini 2.5 Pro
+- **Google Gemini** - Gemini 3.8 Flash, Gemini 3.7 Flash
 - **Local LLM** - Gemma 4 (E2B, E4B, 26B, 31B)、Qwen3.8 27B などのローカルモデルに対応
 - **Anthropic Claude** - Claude Fable 5, Claude Opus 5, Claude Sonnet 5, Claude Haiku 4.5
-- **OpenAI GPT** - GPT-5.6, GPT-5.6 Terra, GPT-5.6 Luna, o4シリーズ
+- **OpenAI GPT** - GPT-6 Astra, GPT-6 Sol, GPT-6 Luna
 - **xAI Grok** - Grok 4.1 Fast (Reasoning)
 - **Codex App Server** - ローカル環境のファイルやコマンド操作を代行するエージェント機能（Native Messaging経由で通信）
 
@@ -197,6 +197,12 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.3.2
+- OpenAI APIの選択肢を刷新し、第6世代モデル（`GPT-6 Astra`, `GPT-6 Sol`, `GPT-6 Luna`）に対応しました。
+- Geminiのデフォルトモデルを `Gemini 3.8 Flash` に変更し、Gemini 3.6 Flash以前の旧モデルを整理・削除しました（旧モデル指定は自動でGemini 3.8 Flashへ移行）。
+- 存在しないモデルIDへのフォールバックやエイリアス解決ロジックを強化しました。
+- 拡張機能のバージョンを 4.3.2 に更新しました。
 
 ### v4.3.1
 - Avatar、Task Skill、組合せProfileを読み込み・管理・適用できるAvatar System MVPを追加しました。

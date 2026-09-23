@@ -1,4 +1,4 @@
-// Easy Gemini v4.3.0 - SKILL.md・最新Geminiモデル対応
+// Easy Gemini v4.3.2 - GPT-6系対応・Geminiモデル刷新
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -72,8 +72,11 @@ const XAI_HOST = 'https://api.x.ai/v1';
 const API_USAGE_KEY = 'easyGemini.apiUsage';
 const HISTORY_KEY = 'easyGemini.history';
 const HISTORY_MAX = 100;
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
 const LEGACY_OPENAI_MODELS = new Set([
+  'gpt-5.6',
+  'gpt-5.6-terra',
+  'gpt-5.6-luna',
   'gpt-5.5',
   'gpt-5.4',
   'gpt-5.4-mini',
@@ -83,12 +86,23 @@ const LEGACY_OPENAI_MODELS = new Set([
   'gpt-5-mini'
 ]);
 const LEGACY_MODEL_ALIASES = {
+  'gpt-6': 'gpt-6-sol',
+  'astra': 'gpt-6-astra',
+  'gpt-6-lune': 'gpt-6-luna',
+  'gemini-3.6-flash': 'gemini-3.8-flash',
+  'gemini-3.5-flash': 'gemini-3.8-flash',
+  'gemini-3.5-flash-lite': 'gemini-3.8-flash',
+  'gemini-3.1-flash-lite': 'gemini-3.8-flash',
+  'gemini-3.1-pro-preview': 'gemini-3.8-flash',
+  'gemini-2.5-pro': 'gemini-3.8-flash',
+  'gemini-2.5-flash': 'gemini-3.8-flash',
+  'gemini-2.5-flash-lite': 'gemini-3.8-flash',
   'gemini-3-flash-preview': 'gemini-3.8-flash',
-  'gemini-3.5-pro': 'gemini-3.1-pro-preview',
-  'gemini-3-pro-preview': 'gemini-3.1-pro-preview',
-  'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
-  'gemini-1.5-pro': 'gemini-2.5-pro',
-  'gemini-1.5-flash': 'gemini-2.5-flash',
+  'gemini-3.5-pro': 'gemini-3.8-flash',
+  'gemini-3-pro-preview': 'gemini-3.8-flash',
+  'gemini-3.1-flash-lite-preview': 'gemini-3.8-flash',
+  'gemini-1.5-pro': 'gemini-3.8-flash',
+  'gemini-1.5-flash': 'gemini-3.8-flash',
   'claude-opus-4-8': 'claude-opus-5',
   'claude-opus-4-7': 'claude-opus-5',
   'claude-opus-4-6': 'claude-opus-5',
@@ -98,7 +112,7 @@ const LEGACY_MODEL_ALIASES = {
 
 function normalizeSelectedModel(model) {
   const value = String(model || '').trim();
-  if (LEGACY_OPENAI_MODELS.has(value)) return 'gpt-5.6';
+  if (LEGACY_OPENAI_MODELS.has(value)) return 'gpt-6-sol';
   if (value === 'hermes-gpt-5.6-wsl') return 'hermes-gpt-5.5-wsl';
   return LEGACY_MODEL_ALIASES[value] || value;
 }
@@ -358,7 +372,7 @@ function capabilitiesForModel() {
 
 function providerForModel(model) {
   if (String(model).startsWith('claude-')) return 'claude';
-  if (String(model).startsWith('gpt-')) return 'openai';
+  if (String(model).startsWith('gpt-') || model === 'astra' || String(model).startsWith('astra-')) return 'openai';
   if (String(model).startsWith('grok-')) return 'grok';
   if (String(model).startsWith('hermes-')) return 'hermes';
   if (String(model).startsWith('local-') || model === 'codex-app-server') return 'local';
@@ -760,7 +774,7 @@ function bindSessionUI(root, s) {
   async function callOpenAIText({ apiKey, model, text, systemPrompt, signal }) {
     const messages = [];
     if (systemPrompt) {
-      const instructionRole = /^(gpt-5|o[34]-)/.test(model) ? 'developer' : 'system';
+      const instructionRole = /^(gpt-[56]|o[34]-|astra)/.test(model) ? 'developer' : 'system';
       messages.push({ role: instructionRole, content: systemPrompt });
     }
     messages.push({ role: 'user', content: text });
@@ -1138,7 +1152,7 @@ function bindSessionUI(root, s) {
           if (msg.id === 0) {
             if (msg.error) return closeAndResolve(null, new Error(msg.error.message || 'Initialize failed'));
             port.postMessage({ jsonrpc: '2.0', method: 'initialized', params: {} });
-            port.postMessage({ jsonrpc: '2.0', method: 'thread/start', id: 1, params: { model: 'gpt-5.6' } });
+            port.postMessage({ jsonrpc: '2.0', method: 'thread/start', id: 1, params: { model: 'gpt-6-sol' } });
           }
           
           if (msg.id === 1) {
@@ -1188,7 +1202,7 @@ function bindSessionUI(root, s) {
 
     const modelVal = modelSel.value || DEFAULT_GEMINI_MODEL;
     const isClaude = modelVal.startsWith('claude-');
-    const isOpenAI = modelVal.startsWith('gpt-') || modelVal.startsWith('o3-') || modelVal.startsWith('o4-');
+    const isOpenAI = modelVal.startsWith('gpt-') || modelVal.startsWith('o3-') || modelVal.startsWith('o4-') || modelVal === 'astra' || modelVal.startsWith('astra-');
     const isGrok = modelVal.startsWith('grok-');
     const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4') || modelVal === 'local-qwen3.8-27b';
     const isHermesGrokWsl = modelVal === 'hermes-grok-oauth-wsl';
@@ -1335,7 +1349,7 @@ function bindSessionUI(root, s) {
           signal: s.abort.signal
         });
       } else if (isOpenAI) {
-        const useResponsesApi = /^gpt-5\.6(?:$|-)/.test(modelVal);
+        const useResponsesApi = /^(gpt-(?:5\.6|6)|astra)(?:$|-)/.test(modelVal);
         const callOpenAI = useResponsesApi ? callOpenAIResponsesText : callOpenAIText;
         out = await callOpenAI({
           apiKey: finalApiKey,
