@@ -1,4 +1,4 @@
-// Easy Gemini v4.3.2 - GPT-6系対応・Geminiモデル刷新
+// Easy Gemini v4.3.3 - Claude Opus 5.5対応・GPT-6系対応
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -103,6 +103,7 @@ const LEGACY_MODEL_ALIASES = {
   'gemini-3.1-flash-lite-preview': 'gemini-3.8-flash',
   'gemini-1.5-pro': 'gemini-3.8-flash',
   'gemini-1.5-flash': 'gemini-3.8-flash',
+  'claude-opus-5.5': 'claude-opus-5-5',
   'claude-opus-4-8': 'claude-opus-5',
   'claude-opus-4-7': 'claude-opus-5',
   'claude-opus-4-6': 'claude-opus-5',
@@ -716,6 +717,8 @@ function bindSessionUI(root, s) {
   async function callClaudeText({ apiKey, model, text, systemPrompt, signal }) {
     // Model ID mapping: UI値を実際のAPI用モデルIDに変換
     const modelIdMap = {
+      'claude-opus-5-5': 'claude-opus-5-5',
+      'claude-opus-5.5': 'claude-opus-5-5',
       'claude-fable-5': 'claude-fable-5',
       'claude-opus-5': 'claude-opus-5',
       'claude-opus-4-8': 'claude-opus-5',
