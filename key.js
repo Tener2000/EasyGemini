@@ -43,7 +43,7 @@
 
   function normalizeHermesGptModel(model) {
     const value = String(model || '').trim();
-    return !value || value === 'gpt-5.6' ? 'gpt-5.5' : value;
+    return !value || value === 'gpt-5.6' || value === 'gpt-5.5' ? 'gpt-6-sol' : value;
   }
 
   async function loadKey() {
@@ -115,7 +115,7 @@
     hermesProviderEl.value = 'xai-oauth';
     hermesModelEl.value = 'grok-4.3';
     hermesGptProviderEl.value = 'openai-codex';
-    hermesGptModelEl.value = 'gpt-5.5';
+    hermesGptModelEl.value = 'gpt-6-sol';
 
     // Reset priority to default
     const radios = document.getElementsByName('geminiAuthPriority');
@@ -152,7 +152,7 @@
   // コストレート（$/1M tokens）
   const COST_RATES = {
     gemini: { input: 0.15, output: 0.60 },       // Gemini 3.8 Flash
-    claude: { input: 3.00, output: 15.00 },       // Claude Sonnet 5
+    claude: { input: 2.00, output: 10.00 },       // Claude Sonnet 5.5
     openai: { input: 2.00, output: 10.00 },       // GPT-6 Sol
     grok: { input: 1.25, output: 2.50 }           // Grok 4.3
   };

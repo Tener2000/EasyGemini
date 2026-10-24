@@ -1,4 +1,4 @@
-// Easy Gemini v4.3.3 - Claude Opus 5.5対応・GPT-6系対応
+// Easy Gemini v4.3.5 - 最新LLMラインナップ・Hermes GPT-6対応・エラーハンドリング強化
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -50,6 +50,7 @@ function createSession(id) {
     id,
     title: 'NEW',
     model: DEFAULT_GEMINI_MODEL,
+    codexModel: '',
     tpl: '',
     src: '',
     out: '',
@@ -91,36 +92,46 @@ const LEGACY_MODEL_ALIASES = {
   'gpt-6-lune': 'gpt-6-luna',
   'gemini-3.6-flash': 'gemini-3.8-flash',
   'gemini-3.5-flash': 'gemini-3.8-flash',
-  'gemini-3.5-flash-lite': 'gemini-3.8-flash',
-  'gemini-3.1-flash-lite': 'gemini-3.8-flash',
-  'gemini-3.1-pro-preview': 'gemini-3.8-flash',
-  'gemini-2.5-pro': 'gemini-3.8-flash',
+  'gemini-3.1-flash-lite': 'gemini-3.5-flash-lite',
+  'gemini-3.1-pro-preview': 'gemini-3.8-pro',
+  'gemini-2.5-pro': 'gemini-3.8-pro',
   'gemini-2.5-flash': 'gemini-3.8-flash',
-  'gemini-2.5-flash-lite': 'gemini-3.8-flash',
+  'gemini-2.5-flash-lite': 'gemini-3.5-flash-lite',
+  'gemini-2.0-flash': 'gemini-3.8-flash',
+  'gemini-2.0-flash-001': 'gemini-3.8-flash',
+  'gemini-2.0-pro-exp-02-05': 'gemini-3.8-pro',
   'gemini-3-flash-preview': 'gemini-3.8-flash',
-  'gemini-3.5-pro': 'gemini-3.8-flash',
-  'gemini-3-pro-preview': 'gemini-3.8-flash',
-  'gemini-3.1-flash-lite-preview': 'gemini-3.8-flash',
-  'gemini-1.5-pro': 'gemini-3.8-flash',
+  'gemini-3.5-pro': 'gemini-3.8-pro',
+  'gemini-3-pro-preview': 'gemini-3.8-pro',
+  'gemini-3.1-flash-lite-preview': 'gemini-3.5-flash-lite',
+  'gemini-1.5-pro': 'gemini-3.8-pro',
   'gemini-1.5-flash': 'gemini-3.8-flash',
   'claude-opus-5.5': 'claude-opus-5-5',
-  'claude-opus-4-8': 'claude-opus-5',
-  'claude-opus-4-7': 'claude-opus-5',
-  'claude-opus-4-6': 'claude-opus-5',
-  'claude-sonnet-4-6': 'claude-sonnet-5',
-  'claude-haiku-4-5': 'claude-haiku-4-5-20251001'
+  'claude-opus-5': 'claude-opus-5-5',
+  'claude-opus-4-8': 'claude-opus-5-5',
+  'claude-opus-4-7': 'claude-opus-5-5',
+  'claude-opus-4-6': 'claude-opus-5-5',
+  'claude-sonnet-4-6': 'claude-sonnet-5-5',
+  'claude-sonnet-5': 'claude-sonnet-5-5',
+  'claude-fable-5': 'claude-fable-5-1',
+  'claude-haiku-4-5-20251001': 'claude-haiku-5-5',
+  'claude-haiku-4-5': 'claude-haiku-5-5',
+  'claude-sdk-sonnet-5': 'claude-sdk-sonnet-5-5',
+  'grok-4.20': 'grok-420-reasoning',
+  'grok-4-1-fast-reasoning': 'grok-420-reasoning',
+  'grok-4-1-fast-non-reasoning': 'grok-420-non-reasoning'
 };
 
 function normalizeSelectedModel(model) {
   const value = String(model || '').trim();
   if (LEGACY_OPENAI_MODELS.has(value)) return 'gpt-6-sol';
-  if (value === 'hermes-gpt-5.6-wsl') return 'hermes-gpt-5.5-wsl';
+  if (value === 'hermes-gpt-5.6-wsl' || value === 'hermes-gpt-5.5-wsl') return 'hermes-gpt-6-wsl';
   return LEGACY_MODEL_ALIASES[value] || value;
 }
 
 function normalizeHermesGptModel(model) {
   const value = String(model || '').trim();
-  return !value || value === 'gpt-5.6' ? 'gpt-5.5' : value;
+  return !value || value === 'gpt-5.6' || value === 'gpt-5.5' ? 'gpt-6-sol' : value;
 }
 
 // ========= API使用量追跡 =========
@@ -372,6 +383,7 @@ function capabilitiesForModel() {
 }
 
 function providerForModel(model) {
+  if (String(model).startsWith('claude-sdk-')) return 'claude';
   if (String(model).startsWith('claude-')) return 'claude';
   if (String(model).startsWith('gpt-') || model === 'astra' || String(model).startsWith('astra-')) return 'openai';
   if (String(model).startsWith('grok-')) return 'grok';
@@ -380,9 +392,64 @@ function providerForModel(model) {
   return 'gemini';
 }
 
+let codexModelsPromise = null;
+function loadCodexModels() {
+  if (codexModelsPromise) return codexModelsPromise;
+  codexModelsPromise = new Promise((resolve, reject) => {
+    let settled = false;
+    let requestId = 1;
+    const models = [];
+    let port;
+    const timeout = setTimeout(() => finish(null, new Error('Codexのモデル一覧取得がタイムアウトしました')), 15000);
+    function finish(value, error) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      try { port?.disconnect(); } catch {}
+      if (error) reject(error);
+      else resolve(value);
+    }
+    try {
+      port = chrome.runtime.connectNative('easy_gemini_codex_host');
+      port.onDisconnect.addListener(() => finish(null, new Error(chrome.runtime.lastError?.message || 'Codexとの接続が切れました')));
+      port.onMessage.addListener(message => {
+        if (message.id === 0) {
+          if (message.error) return finish(null, new Error(message.error.message || 'Codexの初期化に失敗しました'));
+          port.postMessage({ jsonrpc: '2.0', method: 'initialized', params: {} });
+          port.postMessage({ jsonrpc: '2.0', method: 'model/list', id: requestId, params: { limit: 100, includeHidden: false } });
+        } else if (message.id === requestId) {
+          if (message.error) return finish(null, new Error(message.error.message || 'Codexのモデル一覧を取得できません'));
+          models.push(...(message.result?.data || []));
+          const cursor = message.result?.nextCursor;
+          if (cursor) {
+            requestId += 1;
+            port.postMessage({ jsonrpc: '2.0', method: 'model/list', id: requestId, params: { limit: 100, includeHidden: false, cursor } });
+          } else {
+            const available = models.filter(entry => /^gpt-/.test(entry.model || entry.id));
+            if (!available.length) return finish(null, new Error('利用可能なGPTモデルが見つかりません'));
+            finish(available);
+          }
+        }
+      });
+      port.postMessage({
+        jsonrpc: '2.0', method: 'initialize', id: 0,
+        params: { clientInfo: { name: 'easy_gemini', title: 'Easy Gemini', version: '1.0.0' } }
+      });
+    } catch (error) {
+      finish(null, error);
+    }
+  }).catch(error => {
+    codexModelsPromise = null;
+    throw error;
+  });
+  return codexModelsPromise;
+}
+
 // ========= Pane (Session UI) =========
 function bindSessionUI(root, s) {
   const modelSel = $('[data-k="model"]', root);
+  const codexModelWrap = $('[data-k="codexModelWrap"]', root);
+  const codexModelSel = $('[data-k="codexModel"]', root);
   const titleEl = $('[data-k="title"]', root);
   const tplEl = $('[data-k="tpl"]', root);
   const srcEl = $('[data-k="src"]', root);
@@ -487,6 +554,34 @@ function bindSessionUI(root, s) {
   }
   toggleThinkingUI();
 
+  async function updateCodexModelUI() {
+    const active = modelSel.value === 'codex-app-server';
+    codexModelWrap.style.display = active ? 'flex' : 'none';
+    if (!active) return;
+    codexModelSel.disabled = true;
+    codexModelSel.replaceChildren(new Option('モデル一覧を取得中…', ''));
+    try {
+      const models = await loadCodexModels();
+      if (modelSel.value !== 'codex-app-server') return;
+      codexModelSel.replaceChildren(...models.map(entry => new Option(entry.displayName || entry.model || entry.id, entry.model || entry.id)));
+      const defaultModel = models.find(entry => entry.isDefault) || models[0];
+      const selectedModel = s.codexModel || defaultModel.model || defaultModel.id;
+      if (!models.some(entry => (entry.model || entry.id) === selectedModel)) {
+        const missing = new Option(`${selectedModel}（現在利用不可）`, selectedModel);
+        missing.disabled = true;
+        codexModelSel.prepend(missing);
+      }
+      codexModelSel.value = selectedModel;
+      s.codexModel = selectedModel;
+      codexModelSel.disabled = false;
+    } catch (error) {
+      if (modelSel.value === 'codex-app-server') {
+        codexModelSel.replaceChildren(new Option(`一覧取得エラー: ${error.message}`, ''));
+      }
+    }
+  }
+  updateCodexModelUI();
+
   // プリセット描画
   loadPresets().then(list => renderPresetOptions(presetSel, presetPicker, list));
 
@@ -494,8 +589,13 @@ function bindSessionUI(root, s) {
     s.model = modelSel.value; 
     s.updatedAt = now(); 
     toggleThinkingUI();
+    updateCodexModelUI();
     updateCompositionSummary();
     renderTabs(); 
+  });
+  codexModelSel.addEventListener('change', () => {
+    s.codexModel = codexModelSel.value;
+    s.updatedAt = now();
   });
   thinkingCheck.addEventListener('change', () => {
     s.thinkingEnabled = thinkingCheck.checked;
@@ -719,12 +819,14 @@ function bindSessionUI(root, s) {
     const modelIdMap = {
       'claude-opus-5-5': 'claude-opus-5-5',
       'claude-opus-5.5': 'claude-opus-5-5',
-      'claude-fable-5': 'claude-fable-5',
-      'claude-opus-5': 'claude-opus-5',
-      'claude-opus-4-8': 'claude-opus-5',
-      'claude-sonnet-5': 'claude-sonnet-5',
-      'claude-haiku-4-5-20251001': 'claude-haiku-4-5-20251001',
-      'claude-haiku-4-5': 'claude-haiku-4-5-20251001'
+      'claude-sonnet-5-5': 'claude-sonnet-5-5',
+      'claude-haiku-5-5': 'claude-haiku-5-5',
+      'claude-fable-5-1': 'claude-fable-5-1',
+      'claude-fable-5': 'claude-fable-5-1',
+      'claude-opus-5': 'claude-opus-5-5',
+      'claude-opus-4-8': 'claude-opus-5-5',
+      'claude-haiku-4-5-20251001': 'claude-haiku-5-5',
+      'claude-haiku-4-5': 'claude-haiku-5-5'
     };
     const modelId = modelIdMap[normalizeSelectedModel(model)] || normalizeSelectedModel(model);
 
@@ -758,8 +860,15 @@ function bindSessionUI(root, s) {
       try {
         const j = JSON.parse(raw);
         const errMsg = j?.error?.message || j?.message || `HTTP ${res.status}`;
+        if (/credit balance is too low/i.test(errMsg)) {
+          throw new Error('【Claude クレジット残高不足】AnthropicのAPIクレジット残高が不足しています。Anthropic Console (Plans & Billing) でクレジットを購入するか、Claude Pro等のサブスク契約がある場合は「(Agent SDK・試験)」モデルをご利用ください。');
+        }
+        if (/invalid[ _]x?-?api[ _-]?key|authentication_error/i.test(errMsg)) {
+          throw new Error('【Claude 認証エラー】Claude APIキーが無効です。「設定」画面でAPIキーをご確認ください。');
+        }
         throw new Error(`Claude API: ${errMsg}`);
       } catch (parseErr) {
+        if (parseErr.message && !parseErr.message.startsWith('Claude API HTTP')) throw parseErr;
         throw new Error(`Claude API HTTP ${res.status}: ${raw.slice(0, 200)}`);
       }
     }
@@ -1111,7 +1220,37 @@ function bindSessionUI(root, s) {
     });
   }
 
-  async function callCodexAppServerText({ text, signal }) {
+  async function callClaudeSdkText({ model, text, systemPrompt, signal }) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const port = chrome.runtime.connectNative('easy_gemini_codex_host');
+      function finish(value, error) {
+        if (settled) return;
+        settled = true;
+        try { port.disconnect(); } catch {}
+        if (error) reject(error);
+        else resolve(value);
+      }
+      signal.addEventListener('abort', () => {
+        try { port.postMessage({ jsonrpc: '2.0', method: 'claude/cancel', params: { id: 1001 } }); } catch {}
+        finish(null, new DOMException('Cancelled', 'AbortError'));
+      }, { once: true });
+      port.onDisconnect.addListener(() => {
+        finish(null, new Error(chrome.runtime.lastError?.message || 'Native Host Connection Lost'));
+      });
+      port.onMessage.addListener(message => {
+        if (message?.id !== 1001) return;
+        if (message.error) finish(null, new Error(message.error.message || 'Claude SDK failed'));
+        else finish(message.result?.text || '');
+      });
+      port.postMessage({
+        jsonrpc: '2.0', method: 'claude/oneshot', id: 1001,
+        params: { prompt: text, systemPrompt, model }
+      });
+    });
+  }
+
+  async function callCodexAppServerText({ model, text, signal }) {
     return new Promise((resolve, reject) => {
       let resolved = false;
       let threadId = null;
@@ -1155,7 +1294,7 @@ function bindSessionUI(root, s) {
           if (msg.id === 0) {
             if (msg.error) return closeAndResolve(null, new Error(msg.error.message || 'Initialize failed'));
             port.postMessage({ jsonrpc: '2.0', method: 'initialized', params: {} });
-            port.postMessage({ jsonrpc: '2.0', method: 'thread/start', id: 1, params: { model: 'gpt-6-sol' } });
+            port.postMessage({ jsonrpc: '2.0', method: 'thread/start', id: 1, params: { model } });
           }
           
           if (msg.id === 1) {
@@ -1204,12 +1343,13 @@ function bindSessionUI(root, s) {
     if (!text && !hasComposition) { outEl.textContent = '（指示・素材どちらも空です）'; outEl.classList.remove('empty'); return; }
 
     const modelVal = modelSel.value || DEFAULT_GEMINI_MODEL;
-    const isClaude = modelVal.startsWith('claude-');
+    const isClaudeSdk = modelVal.startsWith('claude-sdk-');
+    const isClaude = modelVal.startsWith('claude-') && !isClaudeSdk;
     const isOpenAI = modelVal.startsWith('gpt-') || modelVal.startsWith('o3-') || modelVal.startsWith('o4-') || modelVal === 'astra' || modelVal.startsWith('astra-');
     const isGrok = modelVal.startsWith('grok-');
     const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4') || modelVal === 'local-qwen3.8-27b';
     const isHermesGrokWsl = modelVal === 'hermes-grok-oauth-wsl';
-    const isHermesGptWsl = modelVal === 'hermes-gpt-5.5-wsl';
+    const isHermesGptWsl = modelVal === 'hermes-gpt-6-wsl' || modelVal === 'hermes-gpt-5.5-wsl';
     const isCodexAppServer = modelVal === 'codex-app-server';
 
     if (hasComposition && !isLocal) {
@@ -1222,7 +1362,7 @@ function bindSessionUI(root, s) {
     }
 
     // Define apiType first
-    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isHermesGrokWsl || isHermesGptWsl || isCodexAppServer) ? 'local' : 'gemini';
+    const apiType = isClaude ? 'claude' : isOpenAI ? 'openai' : isGrok ? 'grok' : (isLocal || isHermesGrokWsl || isHermesGptWsl || isCodexAppServer || isClaudeSdk) ? 'local' : 'gemini';
 
     // Then use it
     const authPriority = await new Promise(res => chrome.storage.local.get(['geminiAuthPriority'], x => res(x?.geminiAuthPriority || 'apikey')));
@@ -1272,7 +1412,7 @@ function bindSessionUI(root, s) {
       finalApiKey = apiKeyRaw;
     }
 
-    if (!finalApiKey && !finalToken && !isLocal && !isHermesGrokWsl && !isHermesGptWsl && !isCodexAppServer) {
+    if (!finalApiKey && !finalToken && !isLocal && !isHermesGrokWsl && !isHermesGptWsl && !isCodexAppServer && !isClaudeSdk) {
       needKeyEl.style.display = 'block';
       outEl.textContent = isClaude
         ? 'Claude APIキーが未設定です。「設定」から保存してください。'
@@ -1343,7 +1483,14 @@ function bindSessionUI(root, s) {
       }
 
       let out = '';
-      if (isClaude) {
+      if (isClaudeSdk) {
+        out = await callClaudeSdkText({
+          model: modelVal.replace('claude-sdk-', 'claude-'),
+          text: finalPrompt,
+          systemPrompt,
+          signal: s.abort.signal
+        });
+      } else if (isClaude) {
         out = await callClaudeText({
           apiKey: finalApiKey,
           model: modelVal,
@@ -1362,7 +1509,7 @@ function bindSessionUI(root, s) {
           signal: s.abort.signal
         });
       } else if (isGrok) {
-        const useResponsesApi = /^grok-4\.(3|20)(?:$|-)/.test(modelVal);
+        const useResponsesApi = /^grok-(?:4\.[37]|420)(?:$|-)/.test(modelVal);
         const callGrok = useResponsesApi ? callGrokResponsesText : callGrokText;
         out = await callGrok({
           apiKey: finalApiKey,
@@ -1396,7 +1543,16 @@ function bindSessionUI(root, s) {
           signal: s.abort.signal
         });
       } else if (isCodexAppServer) {
+        const availableModels = await loadCodexModels();
+        if (s.abort.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
+        const defaultModel = availableModels.find(entry => entry.isDefault) || availableModels[0];
+        const codexModel = codexModelSel.value || s.codexModel || defaultModel.model || defaultModel.id;
+        if (!availableModels.some(entry => (entry.model || entry.id) === codexModel)) {
+          throw new Error(`Codexモデル ${codexModel} は現在利用できません`);
+        }
+        s.codexModel = codexModel;
         out = await callCodexAppServerText({
+          model: codexModel,
           text: hasComposition ? `[System Instruction]\n${systemPrompt}\n\n[User Request]\n${finalPrompt}` : finalPrompt,
           signal: s.abort.signal
         });
@@ -1419,6 +1575,7 @@ function bindSessionUI(root, s) {
         id: newId(),
         timestamp: new Date().toISOString(),
         model: modelVal,
+        codexModel: isCodexAppServer ? s.codexModel : undefined,
         tpl: (tplEl.value || '').trim(),
         src: (srcEl.value || '').trim(),
         out: s.out,
@@ -1438,8 +1595,20 @@ function bindSessionUI(root, s) {
       }
 
     } catch (e) {
-      if (e?.name === 'AbortError') { s.status = 'キャンセルしました'; }
-      else { s.status = 'エラー: ' + (e.message || String(e)); }
+      if (e?.name === 'AbortError') {
+        s.status = 'キャンセルしました';
+      } else {
+        const msg = e?.message || String(e);
+        if (/credit balance is too low/i.test(msg)) {
+          s.status = '【Claude クレジット残高不足】AnthropicのAPIクレジット残高が不足しています。Anthropic Console (Plans & Billing) でクレジットを購入するか、Claude Pro等のサブスク契約がある場合は「(Agent SDK・試験)」モデルをご利用ください。';
+        } else if (/xAI OAuth state is missing access_token/i.test(msg) || /xai_refresh_failed/i.test(msg)) {
+          s.status = '【Hermes xAI 認証切れ】WSL上のHermesでxAI（Grok）のログイン期限が切れています。WSLターミナルで「hermes model」を実行して再認証するか、モデル選択で通常の「Grok 4.7」や「Grok 4.3」（API利用）をお使いください。';
+        } else if (msg.startsWith('【')) {
+          s.status = msg;
+        } else {
+          s.status = 'エラー: ' + msg;
+        }
+      }
       outEl.textContent = s.status;
     } finally {
       s.running = false; s.abort = null;
@@ -1545,7 +1714,7 @@ async function renderHistoryList() {
     item.className = 'history-item';
     item.innerHTML = `
       <div class="history-item-header">
-        <span class="history-item-model">${h.model || '不明'}</span>
+        <span class="history-item-model">${escapeHtml(h.codexModel ? `Codex: ${h.codexModel}` : h.model || '不明')}</span>
         <span>${formatDate(h.timestamp)}</span>
       </div>
       <div class="history-item-content">
@@ -1569,6 +1738,7 @@ async function renderHistoryList() {
         s.tpl = h.tpl || '';
         s.src = h.src || '';
         s.model = normalizeSelectedModel(h.model || DEFAULT_GEMINI_MODEL);
+        s.codexModel = h.codexModel || '';
         s.avatarRef = cloneRef(h.avatar);
         s.taskSkillRef = cloneRef(h.taskSkill);
         s.profileId = null;

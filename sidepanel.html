@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Easy Gemini v4.3.3</title>
+  <title>Easy Gemini v4.3.4</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -387,7 +387,7 @@
 <body>
   <div class="wrap">
     <header class="row" style="justify-content: space-between;">
-      <h1>Easy Gemini v4.3.3 <small id="ver" class="hint"></small></h1>
+      <h1>Easy Gemini v4.3.4 <small id="ver" class="hint"></small></h1>
       <div class="row">
         <button id="googleAuthBtn" style="font-size:12px; display:none;">G Sign in</button>
         <button id="openHistory">📚 履歴</button>
@@ -417,37 +417,49 @@
       <div class="row">
         <label class="row">Model
           <select data-k="model">
-            <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash</option>
-            <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
-            <option disabled>──────────</option>
-            <option value="local-gemma-4-e2b">Gemma 4 E2B (Local)</option>
-            <option value="local-gemma-4-e4b">Gemma 4 E4B (Local)</option>
-            <option value="local-gemma-4-26b-a4b">Gemma 4 26B A4B (Local)</option>
-            <option value="local-gemma-4-31b">Gemma 4 31B (Local)</option>
-            <option value="local-qwen3.8-27b">Qwen3.8 27B (Local)</option>
-            <option disabled>──────────</option>
-            <option value="claude-opus-5-5">Claude Opus 5.5</option>
-            <option value="claude-fable-5">Claude Fable 5</option>
-            <option value="claude-opus-5">Claude Opus 5</option>
-            <option value="claude-sonnet-5">Claude Sonnet 5</option>
-            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
-            <option disabled>──────────</option>
-            <option value="gpt-6-astra">GPT-6 Astra</option>
-            <option value="gpt-6-sol">GPT-6 Sol</option>
-            <option value="gpt-6-luna">GPT-6 Luna</option>
-            <option disabled>──────────</option>
-            <option value="grok-4.3">Grok 4.3</option>
-            <option value="grok-4.3-latest">Grok 4.3 latest</option>
-            <option value="grok-4.20">Grok 4.20</option>
-            <option value="grok-4-1-fast-reasoning">Grok 4.1 Fast (Reasoning)</option>
-            <option value="grok-4-1-fast-non-reasoning">Grok 4.1 Fast</option>
-            <option disabled>──────────</option>
-            <option value="local-llm">ローカルLLM (カスタム)</option>
-            <option disabled>──────────</option>
-            <option value="hermes-grok-oauth-wsl">Hermes Grok OAuth (WSL)</option>
-            <option value="hermes-gpt-5.5-wsl">GPT-5.5 (Hermes WSL)</option>
-            <option value="codex-app-server">Codex App Server (Local)</option>
+            <optgroup label="Gemini">
+              <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash</option>
+              <option value="gemini-3.8-pro">Gemini 3.8 Pro</option>
+              <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
+              <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+            </optgroup>
+            <optgroup label="Claude">
+              <option value="claude-opus-5-5">Claude Opus 5.5</option>
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5</option>
+              <option value="claude-fable-5-1">Claude Fable 5.1</option>
+              <option value="claude-sdk-sonnet-5-5">Claude Sonnet 5.5 (Agent SDK・試験)</option>
+              <option value="claude-sdk-opus-5-5">Claude Opus 5.5 (Agent SDK・試験)</option>
+            </optgroup>
+            <optgroup label="GPT">
+              <option value="gpt-6-astra">GPT-6 Astra</option>
+              <option value="gpt-6-sol">GPT-6 Sol</option>
+              <option value="gpt-6-luna">GPT-6 Luna</option>
+              <option value="codex-app-server">Codex App Server (Local)</option>
+              <option value="hermes-gpt-6-wsl">GPT-6 Sol (Hermes WSL)</option>
+            </optgroup>
+            <optgroup label="Grok">
+              <option value="grok-4.7">Grok 4.7</option>
+              <option value="grok-4.3">Grok 4.3</option>
+              <option value="grok-4.3-latest">Grok 4.3 latest</option>
+              <option value="grok-420-reasoning">Grok 420 (Reasoning)</option>
+              <option value="grok-420-non-reasoning">Grok 420 (Fast)</option>
+              <option value="hermes-grok-oauth-wsl">Hermes Grok OAuth (WSL)</option>
+            </optgroup>
+            <optgroup label="Gemma">
+              <option value="local-gemma-4-e2b">Gemma 4 E2B (Local)</option>
+              <option value="local-gemma-4-e4b">Gemma 4 E4B (Local)</option>
+              <option value="local-gemma-4-26b-a4b">Gemma 4 26B A4B (Local)</option>
+              <option value="local-gemma-4-31b">Gemma 4 31B (Local)</option>
+            </optgroup>
+            <optgroup label="ローカル">
+              <option value="local-qwen3.8-27b">Qwen3.8 27B (Local)</option>
+              <option value="local-llm">ローカルLLM (カスタム)</option>
+            </optgroup>
           </select>
+        </label>
+        <label class="row" data-k="codexModelWrap" style="display:none;">Codexモデル
+          <select data-k="codexModel" disabled><option value="">モデル一覧を取得中…</option></select>
         </label>
         <label id="thinkingWrap" class="row hint" style="display:none;">
           <input type="checkbox" data-k="thinking"> Thinking Mode

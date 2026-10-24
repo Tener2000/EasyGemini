@@ -1,0 +1,16 @@
+{
+  "$schema": "../../schemas/composition-profile.schema.json",
+  "format": "easygemini-composition-profile",
+  "formatVersion": 1,
+  "id": "profile.personal-manga-column",
+  "name": "本人文体 × 漫画蘊蓄コラム",
+  "avatar": { "id": "avatar.personal-writing-ja", "version": "1.0.0" },
+  "taskSkill": { "id": "skill.manga-trivia-column-ja", "version": "1.0.0" },
+  "preferredModel": null,
+  "retrieval": {
+    "maxAvatarExamples": 2,
+    "maxSkillExamples": 2,
+    "maxReferenceCharacters": 60000
+  }
+}
+

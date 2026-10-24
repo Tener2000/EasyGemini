@@ -1,0 +1,45 @@
+{
+  "$schema": "../../schemas/task-skill-pack.schema.json",
+  "format": "easygemini-task-skill-pack",
+  "formatVersion": 1,
+  "id": "skill.manga-trivia-column-ja",
+  "name": "Manga Trivia Column Writer JP",
+  "version": "1.0.0",
+  "language": "ja-JP",
+  "description": "漫画一作を一次資料優先で調査し、半歩ずらした蘊蓄コラム、書誌、あらすじ、編集用出典メモを作成するTask Skill。",
+  "author": { "name": "Skill Owner" },
+  "rights": {
+    "visibility": "private",
+    "license": "All Rights Reserved",
+    "redistribution": false,
+    "commercialUse": "owner-only"
+  },
+  "entrypoints": {
+    "instructions": "instructions/workflow.md",
+    "antiSlop": "knowledge/manga-anti-slop-rules.md"
+  },
+  "knowledge": [
+    { "path": "knowledge/manga-research-verification-bible-ja.md", "tags": ["research", "verification", "sources"], "priority": 100 },
+    { "path": "knowledge/manga-column-style-bible.md", "tags": ["structure", "angle", "column"], "priority": 90 }
+  ],
+  "examples": [
+    { "path": "knowledge/examples/MCG-001.md", "tags": ["episode", "review", "off-angle"], "priority": 85 },
+    { "path": "knowledge/examples/MCG-002.md", "tags": ["episode", "period", "culture"], "priority": 85 },
+    { "path": "knowledge/examples/MCG-003.md", "tags": ["production", "behind-scenes"], "priority": 85 },
+    { "path": "knowledge/examples/MCG-004.md", "tags": ["episode", "period", "humor"], "priority": 85 },
+    { "path": "knowledge/examples/MCG-005.md", "tags": ["production", "behind-scenes"], "priority": 85 },
+    { "path": "knowledge/examples/MCG-006.md", "tags": ["overall-review", "reception"], "priority": 85 },
+    { "path": "knowledge/examples/MCG-007.md", "tags": ["overview", "theme", "production"], "priority": 85 }
+  ],
+  "evals": ["evals/manga-column-eval-suite.md"],
+  "capabilities": [
+    { "name": "web_search", "level": "required", "whenUnavailable": "request-sources" },
+    { "name": "page_extract", "level": "preferred", "whenUnavailable": "continue-with-warning" }
+  ],
+  "contextPolicy": {
+    "strategy": "selective",
+    "maxExamples": 3,
+    "maxReferenceCharacters": 60000
+  }
+}
+

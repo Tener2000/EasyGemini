@@ -197,6 +197,10 @@
   }));
   document.querySelector('#importFolder').addEventListener('click', () => folderInput.click());
   document.querySelector('#importPortable').addEventListener('click', () => portableInput.click());
+  document.querySelector('#installNaturalJapanese').addEventListener('click', async () => {
+    try { await importPack(EasyGeminiNaturalJapanesePack.createPack(packApi)); }
+    catch (error) { message(`追加に失敗しました: ${error.message}`, true); }
+  });
   document.querySelector('#importProfile').addEventListener('click', () => profileInput.click());
 
   folderInput.addEventListener('change', async event => {

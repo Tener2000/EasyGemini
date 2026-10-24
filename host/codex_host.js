@@ -1,16 +1,36 @@
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
+const { runClaudeSdk } = require('./claude_sdk');
 
 let codex = null;
 let codexRl = null;
 const hermesChildren = new Map();
+const claudeRuns = new Map();
+
+function codexExecutable() {
+  const localAppData = process.env.LOCALAPPDATA;
+  if (localAppData) {
+    const binDir = path.join(localAppData, 'OpenAI', 'Codex', 'bin');
+    try {
+      const candidates = fs.readdirSync(binDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => path.join(binDir, entry.name, 'codex.exe'))
+        .filter(file => fs.existsSync(file))
+        .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+      if (candidates.length) return candidates[0];
+    } catch { /* デスクトップ版が見つからない場合はPATH上のCLIを使う */ }
+  }
+  return 'codex.cmd';
+}
 
 function ensureCodex() {
   if (codex) return codex;
 
-  // Spawn Codex App Server. shell:true resolves codex.cmd via PATH.
-  codex = spawn('codex.cmd', ['app-server'], {
-    shell: true,
+  const executable = codexExecutable();
+  codex = spawn(executable, ['app-server'], {
+    shell: executable === 'codex.cmd',
     stdio: ['pipe', 'pipe', 'inherit']
   });
 
@@ -115,6 +135,34 @@ function cancelHermes(id) {
   }
 }
 
+async function runClaudeOneshot(message) {
+  const id = message.id ?? null;
+  const params = message.params || {};
+  const prompt = String(params.prompt || '');
+  if (!prompt.trim()) {
+    sendMessage({ jsonrpc: '2.0', id, error: { code: -32602, message: 'Claude prompt is empty' } });
+    return;
+  }
+  const abortController = new AbortController();
+  claudeRuns.set(id, abortController);
+  try {
+    const text = await runClaudeSdk({
+      prompt,
+      systemPrompt: String(params.systemPrompt || ''),
+      model: String(params.model || 'claude-sonnet-5-5'),
+      abortController
+    });
+    sendMessage({ jsonrpc: '2.0', id, result: { text } });
+  } catch (error) {
+    const messageText = error.code === 'ERR_MODULE_NOT_FOUND'
+      ? 'Claude Agent SDK が未インストールです。host フォルダに @anthropic-ai/claude-agent-sdk を導入してください。'
+      : (error.message || String(error));
+    sendMessage({ jsonrpc: '2.0', id, error: { code: -32020, message: messageText } });
+  } finally {
+    claudeRuns.delete(id);
+  }
+}
+
 function decodeOutput(chunk) {
   if (chunk.length > 2 && chunk[1] === 0) {
     return chunk.toString('utf16le');
@@ -127,6 +175,14 @@ function shellQuote(value) {
 }
 
 function handleMessage(message) {
+  if (message?.method === 'claude/oneshot') {
+    runClaudeOneshot(message);
+    return;
+  }
+  if (message?.method === 'claude/cancel') {
+    claudeRuns.get(message?.params?.id)?.abort();
+    return;
+  }
   if (message?.method === 'hermes/oneshot') {
     runHermesOneshot(message);
     return;
@@ -168,6 +224,7 @@ process.stdin.on('data', (chunk) => {
 process.stdin.on('end', () => {
   if (codex) codex.kill();
   cancelHermes(null);
+  for (const run of claudeRuns.values()) run.abort();
   process.exit(0);
 });
 

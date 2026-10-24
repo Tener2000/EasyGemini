@@ -1,0 +1,51 @@
+{
+  "$schema": "../../schemas/avatar-pack.schema.json",
+  "format": "easygemini-avatar-pack",
+  "formatVersion": 1,
+  "id": "avatar.personal-writing-ja",
+  "name": "Personal Writing Avatar JP",
+  "version": "1.0.0",
+  "language": "ja-JP",
+  "description": "本人の承認済み原稿から抽出した、語りの距離、リズム、反応、脱線、ユーモア、アンチスロップ規則を持つ私用文章アバター。",
+  "author": { "name": "Avatar Owner" },
+  "rights": {
+    "visibility": "private",
+    "license": "All Rights Reserved",
+    "redistribution": false,
+    "commercialUse": "owner-only"
+  },
+  "entrypoints": {
+    "voiceCore": "knowledge/voice-core.md",
+    "styleRules": "knowledge/style-analysis.md",
+    "antiSlop": "knowledge/anti-slop.md"
+  },
+  "examples": [
+    { "path": "knowledge/examples/PWA-001.md", "tags": ["report", "first-person", "research"], "priority": 90 },
+    { "path": "knowledge/examples/PWA-002.md", "tags": ["report", "first-person", "research"], "priority": 90 },
+    { "path": "knowledge/examples/PWA-003.md", "tags": ["dialogue", "parody", "recruitment"], "priority": 90 },
+    { "path": "knowledge/examples/PWA-004.md", "tags": ["parody", "recruitment", "article"], "priority": 85 },
+    { "path": "knowledge/examples/PWA-005.md", "tags": ["dialogue", "parody", "promotion"], "priority": 85 },
+    { "path": "knowledge/examples/PWA-006.md", "tags": ["review", "product", "first-person"], "priority": 95 },
+    { "path": "knowledge/examples/PWA-007.md", "tags": ["interview", "article"], "priority": 90 },
+    { "path": "knowledge/examples/PWA-008.md", "tags": ["interview", "article"], "priority": 90 },
+    { "path": "knowledge/examples/PWA-009.md", "tags": ["report", "first-person", "research"], "priority": 95 }
+  ],
+  "overlays": [
+    {
+      "whenTaskSkillId": "skill.manga-trivia-column-ja",
+      "path": "knowledge/overlays/manga-voice-core.md",
+      "examplePaths": ["knowledge/overlays/manga-original-voice-examples.md"]
+    }
+  ],
+  "evals": [
+    "evals/personal-avatar-eval-suite.md",
+    "evals/anti-slop-evaluation-rubric.md"
+  ],
+  "excludedDomains": ["h3-video", "storyboard", "camera-direction", "sound-design"],
+  "contextPolicy": {
+    "strategy": "selective",
+    "maxExamples": 3,
+    "maxReferenceCharacters": 60000
+  }
+}
+

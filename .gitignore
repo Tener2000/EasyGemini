@@ -10,3 +10,6 @@ Thumbs.db
 
 # Preset backup files
 easy-gemini-presets-*.json
+
+# Native Host dependencies
+host/node_modules/
