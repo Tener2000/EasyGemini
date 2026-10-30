@@ -1,4 +1,4 @@
-// Easy Gemini v4.3.5 - 最新LLMラインナップ・Hermes GPT-6対応・エラーハンドリング強化
+// Easy Gemini v4.3.6 - GPT-6.1 Terra対応
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 
@@ -1349,7 +1349,7 @@ function bindSessionUI(root, s) {
     const isGrok = modelVal.startsWith('grok-');
     const isLocal = modelVal === 'local-llm' || modelVal.startsWith('local-gemma-4') || modelVal === 'local-qwen3.8-27b';
     const isHermesGrokWsl = modelVal === 'hermes-grok-oauth-wsl';
-    const isHermesGptWsl = modelVal === 'hermes-gpt-6-wsl' || modelVal === 'hermes-gpt-5.5-wsl';
+    const isHermesGptWsl = modelVal === 'hermes-gpt-6-wsl' || modelVal === 'hermes-gpt-5.5-wsl' || modelVal === 'hermes-gpt-6.1-terra-wsl';
     const isCodexAppServer = modelVal === 'codex-app-server';
 
     if (hasComposition && !isLocal) {
@@ -1499,7 +1499,7 @@ function bindSessionUI(root, s) {
           signal: s.abort.signal
         });
       } else if (isOpenAI) {
-        const useResponsesApi = /^(gpt-(?:5\.6|6)|astra)(?:$|-)/.test(modelVal);
+        const useResponsesApi = /^(gpt-(?:5\.6|6(?:\.\d+)?)|astra)(?:$|-)/.test(modelVal);
         const callOpenAI = useResponsesApi ? callOpenAIResponsesText : callOpenAIText;
         out = await callOpenAI({
           apiKey: finalApiKey,
@@ -1537,7 +1537,7 @@ function bindSessionUI(root, s) {
       } else if (isHermesGptWsl) {
         out = await callHermesCliText({
           provider: hermesGptProvider,
-          model: hermesGptModel,
+          model: modelVal === 'hermes-gpt-6.1-terra-wsl' ? 'gpt-6.1-terra' : hermesGptModel,
           text: finalPrompt,
           systemPrompt,
           signal: s.abort.signal

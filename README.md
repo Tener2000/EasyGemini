@@ -1,4 +1,4 @@
-# Easy Gemini v4.3.5
+# Easy Gemini v4.3.6
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -24,9 +24,11 @@ Easy Gemini では、クラウドAPI・ローカルLLM・CLIサブスク枠（OA
 | | **Claude Sonnet 5.5 (Agent SDK・試験)** | `claude-sdk-sonnet-5-5` | API従量課金不要でWebサブスク枠を使う経路 | Claude Code CLI ログイン |
 | | **Claude Opus 5.5 (Agent SDK・試験)** | `claude-sdk-opus-5-5` | API従量課金不要でWebサブスク枠を使う経路 | Claude Code CLI ログイン |
 | **OpenAI GPT** | **GPT-6 Astra** | `gpt-6-astra` | 最高峰の推論・創造性能を持つ第6世代最上位 | OpenAI APIキー |
+| | **GPT-6.1 Terra** | `gpt-6.1-terra` | 文章作成や画面の理解に対応するモデル | OpenAI APIキー |
 | | **GPT-6 Sol** | `gpt-6-sol` | 高性能かつ万能な第6世代標準モデル | OpenAI APIキー |
 | | **GPT-6 Luna** | `gpt-6-luna` | 応答速度と効率に優れた第6世代軽量モデル | OpenAI APIキー |
 | | **GPT-6 Sol (Hermes WSL)** | `hermes-gpt-6-wsl` | WSL上のHermes経由でChatGPTサブスク枠を利用 | WSL Hermes (openai-codex) |
+| | **GPT-6.1 Terra (Hermes WSL)** | `hermes-gpt-6.1-terra-wsl` | WSL上のHermes経由でGPT-6.1 Terraを利用 | WSL Hermes (openai-codex) |
 | | **Codex App Server (Local)** | `codex-app-server` | ローカルのCodex App Serverと直結するエージェント | Native Messaging |
 | **xAI Grok** | **Grok 4.7** | `grok-4.7` | xAIの最新フラッグシップモデル | Grok APIキー |
 | | **Grok 4.3** | `grok-4.3` | 実績のある安定版主力モデル | Grok APIキー |
@@ -222,6 +224,10 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.3.6
+- GPT-6.1 TerraをOpenAI APIおよびHermes WSLのモデル選択に追加しました。
+- 各画面のバージョン表示を4.3.6に統一しました。
 
 ### v4.3.5
 - 各プロバイダーの最新モデルへ刷新（Gemini 3.8 Pro, Gemini 3.5 Flash Lite, Claude Haiku 5.5, Claude Fable 5.1, Grok 4.7, Grok 420等に対応）。
