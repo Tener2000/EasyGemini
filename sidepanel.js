@@ -1,4 +1,4 @@
-// Easy Gemini v4.3.6 - GPT-6.1 Terra対応
+// Easy Gemini v4.3.7 - Hermes WSLの入力処理を修正
 const $ = (q, root = document) => root.querySelector(q);
 const $$ = (q, root = document) => Array.from(root.querySelectorAll(q));
 

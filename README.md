@@ -1,4 +1,4 @@
-# Easy Gemini v4.3.6
+# Easy Gemini v4.3.7
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -224,6 +224,10 @@ Easy Gemini/
 - **Vanilla JavaScript** (フレームワーク不使用)
 
 ## 📝 更新履歴
+
+### v4.3.7
+- Hermes WSLでHTMLやバッククォートを含む入力を正しく渡せるように修正しました。
+- 拡張機能のバージョンを4.3.7に更新しました。
 
 ### v4.3.6
 - GPT-6.1 TerraをOpenAI APIおよびHermes WSLのモデル選択に追加しました。

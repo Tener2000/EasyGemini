@@ -74,21 +74,22 @@ function runHermesOneshot(message) {
     return;
   }
 
-  const command = [
-    'hermes',
-    '-z',
-    shellQuote(prompt),
-    '--provider',
-    shellQuote(provider),
-    '--model',
-    shellQuote(model)
-  ].join(' ');
+  // WSLのコマンドラインに本文を含めず、標準入力から渡す。
+  const payload = Buffer.from(JSON.stringify({ prompt, provider, model }), 'utf8').toString('base64');
+  const command = 'exec hermes -z "$1" --provider "$2" --model "$3"';
+  const script = [
+    'import base64, json, os',
+    `payload = json.loads(base64.b64decode('${payload}'))`,
+    `os.execvp('bash', ['bash', '-lc', ${JSON.stringify(command)}, 'easy-gemini', payload['prompt'], payload['provider'], payload['model']])`
+  ].join('\n');
 
-  const child = spawn('wsl.exe', ['bash', '-lc', command], {
+  const child = spawn('wsl.exe', ['python3', '-'], {
     windowsHide: true,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['pipe', 'pipe', 'pipe']
   });
   hermesChildren.set(id, child);
+  child.stdin.on('error', () => {});
+  child.stdin.end(script + '\n');
 
   let stdout = '';
   let stderr = '';
@@ -168,10 +169,6 @@ function decodeOutput(chunk) {
     return chunk.toString('utf16le');
   }
   return chunk.toString('utf8');
-}
-
-function shellQuote(value) {
-  return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
 function handleMessage(message) {
